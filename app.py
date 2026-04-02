@@ -7,6 +7,13 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Load .env file before anything else reads environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+except ImportError:
+    pass  # python-dotenv not installed; rely on shell environment
+
 import json
 import logging
 import streamlit as st
@@ -86,7 +93,10 @@ def get_provider():
     try:
         from providers.gcp import GCPProvider
         p = GCPProvider(service_account_json=sa_json if sa_json else None)
-        p.list_projects()          # connectivity check
+        projects = p.list_projects()
+        # Verify IAM read access on the first real project — prevents silent 403s later
+        if projects:
+            p.get_iam_policy(projects[0].id)
         return p, "gcp"
     except Exception as e:
         st.warning(f"GCP unavailable ({e}). Running in mock mode.", icon="⚠️")
@@ -180,7 +190,7 @@ with st.sidebar:
 
     try:
         get_gemini(st.session_state.gemini_key)
-        st.success("✅ Gemini 2.0 Flash ready")
+        st.success("✅ Gemini 2.5 Flash ready")
     except Exception as e:
         st.error(f"❌ Gemini: {e}")
 
@@ -252,7 +262,7 @@ def render_step(step: dict):
 # ── Main Tabs ─────────────────────────────────────────────────────────────────
 
 st.title("🛡️ IAM Guardian")
-st.caption("Autonomous IAM Agent · Least Privilege · Powered by Gemini 2.0 Flash")
+st.caption("Autonomous IAM Agent · Least Privilege · Powered by Gemini 2.5 Flash")
 
 n_pending = len(storage.get_pending_requests())
 tab_chat, tab_admin, tab_audit, tab_mcp = st.tabs([
@@ -287,13 +297,13 @@ with tab_chat:
         col1, col2 = st.columns(2)
         prompts = [
             ("📦 Read from Cloud Storage",
-             "I need to read training data files from Cloud Storage for my ML experiment on the ml-poc-2024 project."),
+             "I need to read training data files from Cloud Storage for my ML experiment. Can you check what projects I have access to?"),
             ("📊 Run BigQuery queries",
-             "Can I get access to run BigQuery queries on the data-pipeline-stg project? I need to analyse some tables."),
+             "Can I get access to run BigQuery queries? I need to analyse some tables. Please show me available projects first."),
             ("🚨 Owner access (will escalate)",
-             "I need owner access on dev-sandbox so I can configure everything myself. It's urgent."),
+             "I need owner access on one of our projects so I can configure everything myself. It's urgent."),
             ("🤖 Vertex AI for LLM work",
-             "I'm building an LLM pipeline and need to use Vertex AI APIs on the ml-poc-2024 project."),
+             "I'm building an LLM pipeline and need to use Vertex AI APIs. What projects are available?"),
         ]
         for i, (label, text) in enumerate(prompts):
             col = col1 if i % 2 == 0 else col2
@@ -330,7 +340,7 @@ with tab_chat:
                         conversation_history=st.session_state.conv_messages,
                         requester_email=st.session_state.user_email,
                         provider=provider,
-                        gemini_model=model,
+                        gemini_client=model,
                     ):
                         # Record for history replay
                         steps_recorded.append({
@@ -565,18 +575,20 @@ with tab_mcp:
     st.markdown("#### Tools exposed over MCP")
 
     tools = [
-        ("list_projects",      "Lists all accessible GCP projects",                             "Auto-grant"),
-        ("check_user_access",  "Returns current IAM roles for a user on a project",             "Auto-grant"),
-        ("grant_iam_role",     "Grants a least-privilege role — blocked if high-privilege",      "Auto-grant"),
-        ("escalate_to_admin",  "Queues a high-privilege request for human approval",             "Escalation"),
-        ("list_safe_roles",    "Returns the approved safe-role list (filterable by keyword)",    "Info"),
+        ("list_projects",      "Lists all accessible GCP projects",                                          "Read"),
+        ("check_user_access",  "Returns current IAM roles for a user on a project",                          "Read"),
+        ("get_iam_policy",     "Returns the full IAM policy for a project (all users and roles)",             "Read"),
+        ("grant_iam_role",     "Grants a least-privilege role — blocked if high-privilege or not in safe list", "Auto-grant"),
+        ("revoke_iam_role",    "Revokes a role — blocked if high-privilege (requires admin approval)",        "Auto-grant"),
+        ("escalate_to_admin",  "Queues a high-privilege request for human approval",                          "Escalation"),
+        ("list_safe_roles",    "Returns the approved safe-role list (filterable by keyword)",                  "Info"),
     ]
 
     for name, desc, category in tools:
         badge_color = (
             "badge-green" if category == "Auto-grant"
             else "badge-amber" if category == "Escalation"
-            else "badge-blue"
+            else "badge-blue"  # Read / Info
         )
         st.markdown(
             f"<span class='badge {badge_color}'>{category}</span> "
@@ -597,8 +609,8 @@ with tab_mcp:
     )
 
     st.markdown(
-        "The Gemini agent (running in this Streamlit app) uses **Gemini function calling** "
-        "to invoke the same underlying tool logic directly. The MCP server exposes those "
-        "same tools over the MCP protocol so Claude Desktop or other MCP clients can "
+        "The Gemini agent (running in this Streamlit app) uses **Gemini 2.5 Flash function calling** "
+        "to invoke the same underlying tool logic directly. The MCP server exposes all 7 of those "
+        "tools over the MCP protocol so Claude Desktop or other MCP clients can "
         "consume them without any changes to the tool implementations."
     )

@@ -5,6 +5,7 @@ Admin queue (pending approvals) + Audit log (observability).
 import json
 import uuid
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +13,10 @@ QUEUE_FILE = Path("admin_queue.json")
 AUDIT_FILE = Path("audit.log")
 
 logger = logging.getLogger(__name__)
+
+# Lock for thread-safe file access within a single process (multiple Streamlit threads)
+_queue_lock = threading.Lock()
+_audit_lock = threading.Lock()
 
 
 # ── Admin Queue ───────────────────────────────────────────────────────────────
@@ -37,21 +42,22 @@ def add_pending_request(
     agent_reasoning: str,
 ) -> str:
     """Add a high-privilege request to the admin approval queue."""
-    items = _load_queue()
-    request_id = str(uuid.uuid4())[:8].upper()
-    items.append({
-        "id": request_id,
-        "status": "pending",
-        "requester": requester_email,
-        "project_id": project_id,
-        "requested_role": requested_role,
-        "justification": justification,
-        "agent_reasoning": agent_reasoning,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "resolved_at": None,
-        "resolved_by": None,
-    })
-    _save_queue(items)
+    with _queue_lock:
+        items = _load_queue()
+        request_id = str(uuid.uuid4())[:8].upper()
+        items.append({
+            "id": request_id,
+            "status": "pending",
+            "requester": requester_email,
+            "project_id": project_id,
+            "requested_role": requested_role,
+            "justification": justification,
+            "agent_reasoning": agent_reasoning,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "resolved_at": None,
+            "resolved_by": None,
+        })
+        _save_queue(items)
     audit(
         actor="agent",
         action="escalate_to_admin",
@@ -74,23 +80,26 @@ def get_all_requests() -> list[dict]:
 
 def resolve_request(request_id: str, action: str, admin_email: str) -> dict | None:
     """Approve or deny a pending request. Returns the resolved item."""
-    items = _load_queue()
-    for item in items:
-        if item["id"] == request_id and item["status"] == "pending":
-            item["status"] = action  # "approved" or "denied"
-            item["resolved_at"] = datetime.now(timezone.utc).isoformat()
-            item["resolved_by"] = admin_email
-            _save_queue(items)
-            audit(
-                actor=admin_email,
-                action=f"admin_{action}",
-                target_user=item["requester"],
-                project=item["project_id"],
-                role=item["requested_role"],
-                outcome=action,
-                detail=f"Request ID: {request_id}",
-            )
-            return item
+    if action not in ("approved", "denied"):
+        raise ValueError(f"Invalid action '{action}': must be 'approved' or 'denied'")
+    with _queue_lock:
+        items = _load_queue()
+        for item in items:
+            if item["id"] == request_id and item["status"] == "pending":
+                item["status"] = action
+                item["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                item["resolved_by"] = admin_email
+                _save_queue(items)
+                audit(
+                    actor=admin_email,
+                    action=f"admin_{action}",
+                    target_user=item["requester"],
+                    project=item["project_id"],
+                    role=item["requested_role"],
+                    outcome=action,
+                    detail=f"Request ID: {request_id}",
+                )
+                return item
     return None
 
 
@@ -116,8 +125,9 @@ def audit(
         "outcome": outcome,
         "detail": detail,
     }
-    with open(AUDIT_FILE, "a") as f:
-        f.write(json.dumps(entry) + "\n")
+    with _audit_lock:
+        with open(AUDIT_FILE, "a") as f:
+            f.write(json.dumps(entry) + "\n")
     logger.info(f"AUDIT | {action} | {target_user} | {role} | {outcome}")
 
 
@@ -131,5 +141,5 @@ def get_audit_log(limit: int = 50) -> list[dict]:
             try:
                 entries.append(json.loads(line))
             except Exception:
-                pass
+                logger.warning(f"Skipping corrupted audit log entry: {line[:80]!r}")
     return list(reversed(entries))[:limit]

@@ -58,15 +58,12 @@ class GCPProvider(CloudProvider):
 
     def list_projects(self) -> list[Project]:
         try:
-            request = resourcemanager_v3.ListProjectsRequest(
-                parent="",  # lists all accessible projects
-            )
-            # Use search instead of list for broader access
+            # Use search_projects for broader access; the pager handles pagination automatically
             results = self._rm_client.search_projects(
                 resourcemanager_v3.SearchProjectsRequest(query="state:ACTIVE")
             )
             projects = []
-            for p in results:
+            for p in results:  # pager iterates all pages automatically
                 projects.append(Project(
                     id=p.project_id,
                     name=p.display_name or p.project_id,
@@ -130,7 +127,8 @@ class GCPProvider(CloudProvider):
                 bindings.append({"role": role, "members": [member]})
                 policy["bindings"] = bindings
 
-            # 3. Set updated policy
+            # 3. Set updated policy — policy dict retains the etag from getIamPolicy
+            # so GCP will reject the write if a concurrent modification has occurred.
             self._crm_service.projects().setIamPolicy(
                 resource=project_id,
                 body={"policy": policy},
@@ -180,6 +178,7 @@ class GCPProvider(CloudProvider):
             # Remove empty bindings
             policy["bindings"] = [b for b in bindings if b.get("members")]
 
+            # policy dict retains the etag from getIamPolicy for optimistic concurrency
             self._crm_service.projects().setIamPolicy(
                 resource=project_id,
                 body={"policy": policy},

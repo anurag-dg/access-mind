@@ -1,10 +1,12 @@
 """
 IAM Guardian - Core Agent (Gemini edition)
-Uses google-generativeai with native function calling.
+Uses google-genai (new SDK) with native function calling.
 Yields AgentStep objects so the UI can display reasoning live.
 """
+
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import json
@@ -12,14 +14,16 @@ import logging
 from dataclasses import dataclass, field
 from typing import Generator, Any
 
-import google.generativeai as genai
-import google.generativeai.protos as protos
+from google import genai
+from google.genai import types
 
 from config import SYSTEM_PROMPT, SAFE_ROLES, HIGH_PRIVILEGE_ROLES
 from providers.base import CloudProvider
 import storage
 
 logger = logging.getLogger(__name__)
+
+MODEL_NAME = "gemini-2.5-flash"
 
 
 # ── Tool Definitions (JSON Schema — same structure, Gemini accepts it) ─────────
@@ -140,8 +144,11 @@ TOOLS_SCHEMA = [
                 },
             },
             "required": [
-                "user_email", "project_id", "requested_role",
-                "justification", "agent_reasoning",
+                "user_email",
+                "project_id",
+                "requested_role",
+                "justification",
+                "agent_reasoning",
             ],
         },
     },
@@ -166,48 +173,50 @@ TOOLS_SCHEMA = [
 
 
 def _build_gemini_tools() -> list:
-    """Convert our schema list into Gemini FunctionDeclaration objects."""
+    """Convert our schema list into Gemini FunctionDeclaration objects (new SDK)."""
     declarations = []
     for t in TOOLS_SCHEMA:
         declarations.append(
-            protos.FunctionDeclaration(
+            types.FunctionDeclaration(
                 name=t["name"],
                 description=t["description"],
-                parameters=protos.Schema(
-                    type=protos.Type.OBJECT,
+                parameters=types.Schema(
+                    type=types.Type.OBJECT,
                     properties={
                         k: _convert_param(v)
-                        for k, v in t.get("parameters", {}).get("properties", {}).items()
+                        for k, v in t.get("parameters", {})
+                        .get("properties", {})
+                        .items()
                     },
                     required=t.get("parameters", {}).get("required", []),
                 ),
             )
         )
-    return [protos.Tool(function_declarations=declarations)]
+    return [types.Tool(function_declarations=declarations)]
 
 
-def _convert_param(param: dict) -> protos.Schema:
-    """Recursively convert a JSON-schema param to a Gemini Schema proto."""
+def _convert_param(param: dict) -> types.Schema:
+    """Recursively convert a JSON-schema param to a Gemini Schema (new SDK)."""
     type_map = {
-        "string":  protos.Type.STRING,
-        "integer": protos.Type.INTEGER,
-        "number":  protos.Type.NUMBER,
-        "boolean": protos.Type.BOOLEAN,
-        "array":   protos.Type.ARRAY,
-        "object":  protos.Type.OBJECT,
+        "string": types.Type.STRING,
+        "integer": types.Type.INTEGER,
+        "number": types.Type.NUMBER,
+        "boolean": types.Type.BOOLEAN,
+        "array": types.Type.ARRAY,
+        "object": types.Type.OBJECT,
     }
-    schema = protos.Schema(
-        type=type_map.get(param.get("type", "string"), protos.Type.STRING),
+    return types.Schema(
+        type=type_map.get(param.get("type", "string"), types.Type.STRING),
         description=param.get("description", ""),
     )
-    return schema
 
 
 # ── Step types yielded to the UI ──────────────────────────────────────────────
 
+
 @dataclass
 class AgentStep:
-    type: str          # "tool_call" | "tool_result" | "guardrail" | "done"
+    type: str  # "tool_call" | "tool_result" | "guardrail" | "done"
     tool_name: str = ""
     tool_input: dict = field(default_factory=dict)
     tool_result: Any = None
@@ -216,6 +225,7 @@ class AgentStep:
 
 
 # ── Tool Execution ────────────────────────────────────────────────────────────
+
 
 def _execute_tool(
     tool_name: str,
@@ -227,9 +237,7 @@ def _execute_tool(
 
     if tool_name == "list_projects":
         projects = provider.list_projects()
-        return {
-            "projects": [{"id": p.id, "name": p.name} for p in projects]
-        }, None
+        return {"projects": [{"id": p.id, "name": p.name} for p in projects]}, None
 
     elif tool_name == "check_user_access":
         roles = provider.get_user_roles(
@@ -247,15 +255,14 @@ def _execute_tool(
         return {
             "project": policy.project_id,
             "bindings": [
-                {"role": b.role, "members": b.members}
-                for b in policy.bindings
+                {"role": b.role, "members": b.members} for b in policy.bindings
             ],
         }, None
 
     elif tool_name == "grant_iam_role":
-        role        = tool_input["role"]
-        email       = tool_input["user_email"]
-        project     = tool_input["project_id"]
+        role = tool_input["role"]
+        email = tool_input["user_email"]
+        project = tool_input["project_id"]
         justification = tool_input.get("justification", "")
 
         # ── Guardrail: high-privilege roles are NEVER auto-granted ────────
@@ -326,17 +333,43 @@ def _execute_tool(
         }, None
 
     elif tool_name == "revoke_iam_role":
-        member = f"user:{tool_input['user_email']}"
-        result = provider.revoke_role(
-            tool_input["project_id"], member, tool_input["role"]
-        )
+        role = tool_input["role"]
+        email = tool_input["user_email"]
+        project = tool_input["project_id"]
+
+        # ── Guardrail: block revocation of high-privilege roles ───────────
+        if role in HIGH_PRIVILEGE_ROLES:
+            req_id = storage.add_pending_request(
+                requester_email=email,
+                project_id=project,
+                requested_role=role,
+                justification="Revocation requested by agent",
+                agent_reasoning="Auto-escalated by guardrail: agent attempted direct revocation of a high-privilege role.",
+            )
+            return {
+                "blocked": True,
+                "reason": (
+                    f"Revocation of {role} requires admin approval — it is a high-privilege role. "
+                    f"Escalated to admin (Request ID: {req_id})."
+                ),
+                "request_id": req_id,
+            }, AgentStep(
+                type="guardrail",
+                tool_name=tool_name,
+                tool_input=tool_input,
+                message=f"🚫 GUARDRAIL FIRED: Agent tried to revoke `{role}` — blocked and escalated to admin (ID: {req_id}).",
+                is_safe=False,
+            )
+
+        member = f"user:{email}"
+        result = provider.revoke_role(project, member, role)
         if result.success:
             storage.audit(
                 actor="agent",
                 action="revoke_role",
-                target_user=tool_input["user_email"],
-                project=tool_input["project_id"],
-                role=tool_input["role"],
+                target_user=email,
+                project=project,
+                role=role,
                 outcome="success",
             )
         return {"success": result.success, "message": result.message}, None
@@ -362,8 +395,9 @@ def _execute_tool(
         roles = dict(SAFE_ROLES)
         kw = tool_input.get("filter", "").lower()
         if kw:
-            roles = {k: v for k, v in roles.items()
-                     if kw in k.lower() or kw in v.lower()}
+            roles = {
+                k: v for k, v in roles.items() if kw in k.lower() or kw in v.lower()
+            }
         return {"safe_roles": roles, "count": len(roles)}, None
 
     else:
@@ -372,47 +406,52 @@ def _execute_tool(
 
 # ── Gemini Client Factory ─────────────────────────────────────────────────────
 
-def make_gemini_client(api_key: str | None = None) -> genai.GenerativeModel:
-    """Build and return a configured Gemini GenerativeModel."""
+
+def make_gemini_client(api_key: str | None = None) -> genai.Client:
+    """Build and return a configured Gemini Client (new google-genai SDK)."""
     key = api_key or os.getenv("GEMINI_API_KEY")
     if not key:
-        raise ValueError("GEMINI_API_KEY not set. Get a free key at aistudio.google.com")
-    genai.configure(api_key=key)
-    return genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        system_instruction=SYSTEM_PROMPT,
-        tools=_build_gemini_tools(),
-        generation_config=genai.GenerationConfig(
-            temperature=0.2,      # Low temp for consistent, safe IAM decisions
-            max_output_tokens=2048,
-        ),
-    )
+        raise ValueError(
+            "GEMINI_API_KEY not set. Get a free key at aistudio.google.com"
+        )
+    return genai.Client(api_key=key)
 
 
 # ── Agent Loop ────────────────────────────────────────────────────────────────
+
 
 def run_agent(
     user_message: str,
     conversation_history: list[dict],
     requester_email: str,
     provider: CloudProvider,
-    gemini_model: genai.GenerativeModel,
+    gemini_client: genai.Client,
 ) -> Generator[AgentStep, None, None]:
     """
-    Agentic loop using Gemini function calling.
+    Agentic loop using Gemini function calling (new google-genai SDK).
     Yields AgentStep objects for live UI display.
     Final step is always type='done' with the response text.
     """
 
-    # Convert stored history to Gemini Content format
-    gemini_history = []
-    for msg in conversation_history:
-        gemini_history.append({
-            "role": "user" if msg["role"] == "user" else "model",
-            "parts": [{"text": msg["content"]}],
-        })
+    # Convert stored history to new SDK Content format
+    gemini_history = [
+        types.Content(
+            role="user" if msg["role"] == "user" else "model",
+            parts=[types.Part(text=msg["content"])],
+        )
+        for msg in conversation_history
+    ]
 
-    chat = gemini_model.start_chat(history=gemini_history)
+    chat = gemini_client.chats.create(
+        model=MODEL_NAME,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            tools=_build_gemini_tools(),
+            temperature=0.2,  # Low temp for consistent, safe IAM decisions
+            max_output_tokens=2048,
+        ),
+        history=gemini_history,
+    )
 
     # Safety: cap tool-call rounds to avoid infinite loops
     max_rounds = 10
@@ -422,14 +461,14 @@ def run_agent(
     for _ in range(max_rounds):
         # Collect all function calls in this response
         fn_calls = []
-        for part in response.parts:
+        for part in response.candidates[0].content.parts:
             if part.function_call and part.function_call.name:
                 fn_calls.append(part.function_call)
 
         # No function calls → agent is done, extract text
         if not fn_calls:
             final_text = ""
-            for part in response.parts:
+            for part in response.candidates[0].content.parts:
                 if hasattr(part, "text") and part.text:
                     final_text += part.text
             yield AgentStep(type="done", message=final_text or "Done.")
@@ -438,8 +477,8 @@ def run_agent(
         # Execute each function call and collect results
         tool_response_parts = []
         for fc in fn_calls:
-            tool_name  = fc.name
-            tool_input = dict(fc.args)   # MapComposite → plain dict
+            tool_name = fc.name
+            tool_input = dict(fc.args)  # MapComposite → plain dict
 
             # Yield the call step so UI shows it immediately
             yield AgentStep(
@@ -448,9 +487,19 @@ def run_agent(
                 tool_input=tool_input,
             )
 
-            result, guardrail = _execute_tool(
-                tool_name, tool_input, requester_email, provider
-            )
+            try:
+                result, guardrail = _execute_tool(
+                    tool_name, tool_input, requester_email, provider
+                )
+            except Exception as e:
+                logger.error(f"Tool {tool_name} failed: {e}")
+                # Return error as a structured result so the model can explain it naturally
+                result = {
+                    "error": str(e),
+                    "success": False,
+                    "hint": "The project may not exist, or the service account lacks access to it.",
+                }
+                guardrail = None
 
             if guardrail:
                 yield guardrail
@@ -462,8 +511,8 @@ def run_agent(
             )
 
             tool_response_parts.append(
-                protos.Part(
-                    function_response=protos.FunctionResponse(
+                types.Part(
+                    function_response=types.FunctionResponse(
                         name=tool_name,
                         response={"result": json.dumps(result)},
                     )
