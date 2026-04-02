@@ -1,5 +1,5 @@
 """
-IAM Guardian - Abstract Cloud Provider Interface
+Access Mind - Abstract Cloud Provider Interface
 Swap GCPProvider for AWSProvider or AzureProvider with zero agent changes.
 """
 from abc import ABC, abstractmethod

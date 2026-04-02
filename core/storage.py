@@ -1,5 +1,5 @@
 """
-IAM Guardian - Persistence Layer
+Access Mind - Persistence Layer
 Admin queue (pending approvals) + Audit log (observability).
 """
 import json

@@ -15,8 +15,12 @@ _stderr_handler.setFormatter(
 logger.addHandler(_stderr_handler)
 
 from fastmcp import FastMCP
-from config import SAFE_ROLES, HIGH_PRIVILEGE_ROLES
-import storage
+from core.config import SAFE_ROLES, HIGH_PRIVILEGE_ROLES
+from core import storage
+
+# Server-side challenge tracker (mirrors agent.py — needed when MCP client drives termination)
+_termination_challenges: dict[str, int] = {}
+REQUIRED_CHALLENGES = 2
 
 mcp = FastMCP("Access Mind Tools")
 
@@ -41,7 +45,8 @@ def _log_startup():
     tools = [
         "list_projects", "check_user_access", "get_iam_policy",
         "grant_iam_role", "revoke_iam_role", "escalate_to_admin", "list_safe_roles",
-        "list_resources", "get_cost_recommendations", "get_termination_requests", "approve_termination",
+        "list_resources", "get_cost_recommendations", "get_termination_requests",
+        "challenge_termination", "approve_termination",
     ]
     logger.info("=" * 55)
     logger.info("Access Mind MCP Server starting")
@@ -196,7 +201,7 @@ def escalate_to_admin(user_email: str, project_id: str, requested_role: str,
 
 @mcp.tool()
 def list_safe_roles(filter: str = "") -> dict:
-    """Return the list of IAM roles that IAM Guardian can grant autonomously."""
+    """Return the list of IAM roles that Access Mind can grant autonomously."""
     logger.info("[list_safe_roles] filter=%r", filter)
     try:
         roles = dict(SAFE_ROLES)
@@ -276,10 +281,50 @@ def get_termination_requests() -> dict:
 
 
 @mcp.tool()
+def challenge_termination(request_id: str, question: str) -> dict:
+    """Register a challenge question for a termination request. Must be called at least 2 times before approve_termination is allowed."""
+    logger.info("[challenge_termination] request_id=%s question=%r", request_id, question[:80])
+    try:
+        count = _termination_challenges.get(request_id, 0) + 1
+        _termination_challenges[request_id] = count
+        remaining = max(0, REQUIRED_CHALLENGES - count)
+        logger.info("[challenge_termination] request=%s round=%d/%d", request_id, count, REQUIRED_CHALLENGES)
+        return {
+            "challenge_registered": True,
+            "request_id": request_id,
+            "question_asked": question,
+            "challenges_completed": count,
+            "challenges_required": REQUIRED_CHALLENGES,
+            "challenges_remaining": remaining,
+            "ready_to_approve": remaining == 0,
+            "instruction": (
+                f"Present this question to the admin and wait for their answer. "
+                + (f"You need {remaining} more challenge(s) before you can approve."
+                   if remaining > 0 else "Minimum challenges met. You may approve if satisfied with all answers.")
+            ),
+        }
+    except Exception as e:
+        logger.exception("[challenge_termination] error request_id=%s", request_id)
+        return {"error": str(e)}
+
+
+@mcp.tool()
 def approve_termination(request_id: str, agent_justification: str) -> dict:
     """Approve and execute a pending resource termination. Only call after thorough justification review."""
     logger.info("[approve_termination] request_id=%s", request_id)
     try:
+        challenges_given = _termination_challenges.get(request_id, 0)
+        if challenges_given < REQUIRED_CHALLENGES:
+            logger.warning("[approve_termination] BLOCKED request=%s challenges=%d/%d", request_id, challenges_given, REQUIRED_CHALLENGES)
+            return {
+                "blocked": True,
+                "reason": (
+                    f"Approval blocked. You have only challenged the admin {challenges_given} time(s). "
+                    f"Call challenge_termination at least {REQUIRED_CHALLENGES - challenges_given} more time(s) first."
+                ),
+                "challenges_completed": challenges_given,
+                "challenges_required": REQUIRED_CHALLENGES,
+            }
         resolved = storage.resolve_termination(request_id, "approved", "mcp-agent", agent_justification)
         if not resolved:
             return {"error": f"Request '{request_id}' not found or already resolved."}

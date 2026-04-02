@@ -1,5 +1,5 @@
 """
-IAM Guardian - Role Definitions & Guardrails
+Access Mind - Role Definitions & Guardrails
 Cloud-agnostic role mapping with GCP as the concrete provider.
 """
 

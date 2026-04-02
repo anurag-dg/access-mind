@@ -18,9 +18,9 @@ import json
 import logging
 import streamlit as st
 
-from config import SAFE_ROLES, HIGH_PRIVILEGE_ROLES
-from agent import run_agent, AgentStep, make_gemini_client
-import storage
+from core.config import SAFE_ROLES, HIGH_PRIVILEGE_ROLES
+from core.agent import run_agent, AgentStep, make_gemini_client
+from core import storage
 
 logging.basicConfig(level=logging.INFO)
 

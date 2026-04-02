@@ -1,5 +1,5 @@
 """
-IAM Guardian - Core Agent (Gemini edition)
+Access Mind - Core Agent (Gemini edition)
 Uses google-genai (new SDK) with native function calling.
 Yields AgentStep objects so the UI can display reasoning live.
 """
@@ -7,7 +7,8 @@ Yields AgentStep objects so the UI can display reasoning live.
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root to sys.path so `providers/` and `core/` are both importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import logging
@@ -17,9 +18,9 @@ from typing import Generator, Any
 from google import genai
 from google.genai import types
 
-from config import SYSTEM_PROMPT, SAFE_ROLES, HIGH_PRIVILEGE_ROLES
+from core.config import SYSTEM_PROMPT, SAFE_ROLES, HIGH_PRIVILEGE_ROLES
 from providers.base import CloudProvider
-import storage
+from core import storage
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ TOOLS_SCHEMA = [
     {
         "name": "list_projects",
         "description": (
-            "List all cloud projects accessible to IAM Guardian. "
+            "List all cloud projects accessible to Access Mind. "
             "Call this when the user hasn't specified which project they need access to. "
             "The response contains 'project_id' and 'display_name' — always use 'project_id' "
             "(never the display name) for all subsequent tool calls."
@@ -162,7 +163,7 @@ TOOLS_SCHEMA = [
     {
         "name": "list_safe_roles",
         "description": (
-            "Return the list of IAM roles that IAM Guardian can grant autonomously. "
+            "Return the list of IAM roles that Access Mind can grant autonomously. "
             "Call this if the user asks what access is available, or to check "
             "whether a specific role is in the safe list."
         ),

@@ -1,5 +1,5 @@
 """
-IAM Guardian — FastAPI Backend
+Access Mind — FastAPI Backend
 Serves the frontend SPA and exposes REST + SSE endpoints.
 """
 import sys
@@ -20,8 +20,8 @@ from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from agent import run_agent, make_gemini_client, TOOLS_SCHEMA
-import storage
+from core.agent import run_agent, make_gemini_client, TOOLS_SCHEMA
+from core import storage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

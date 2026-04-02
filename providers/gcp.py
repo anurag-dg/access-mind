@@ -1,5 +1,5 @@
 """
-IAM Guardian - GCP Provider (Real API)
+Access Mind - GCP Provider (Real API)
 Uses google-cloud-resource-manager + google-api-python-client for IAM,
 Compute, Storage, and Recommender APIs.
 """

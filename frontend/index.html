@@ -1681,7 +1681,17 @@
 
       <div class="form-group">
         <label>Email Address</label>
-        <input type="email" id="login-email" placeholder="you@company.com" />
+        <input type="email" id="login-email" placeholder="you@company.com" value="anuraggcp101@gmail.com" />
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button type="button" onclick="quickFill('anuraggcp101@gmail.com','employee')"
+            style="font-size:11px;padding:3px 8px;background:var(--blue-dim);border:1px solid var(--border2);border-radius:6px;color:var(--blue);cursor:pointer;">
+            👤 anuraggcp101 (Employee)
+          </button>
+          <button type="button" onclick="quickFill('anuraggcp101@gmail.com','admin')"
+            style="font-size:11px;padding:3px 8px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:6px;color:var(--amber);cursor:pointer;">
+            🔐 anuraggcp101 (Admin)
+          </button>
+        </div>
       </div>
       <div class="form-group">
         <label>Role</label>
@@ -1899,6 +1909,11 @@
     // ── Auth ─────────────────────────────────────────────────────────────────────
     document.getElementById('login-btn').addEventListener('click', login);
     document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+    function quickFill(email, role) {
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-role').value = role;
+    }
 
     function login() {
       const email = document.getElementById('login-email').value.trim();

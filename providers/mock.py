@@ -1,5 +1,5 @@
 """
-IAM Guardian - Mock Cloud Provider
+Access Mind - Mock Cloud Provider
 Used when GCP credentials aren't available. Perfect for demo fallback.
 """
 import time
