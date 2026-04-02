@@ -1,0 +1,2675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Access Mind</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ───────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #070c15;
+      --bg2: #0c1220;
+      --bg3: #101827;
+      --bg4: #151f30;
+      --border: rgba(56, 139, 253, .14);
+      --border2: rgba(56, 139, 253, .3);
+      --blue: #388bfd;
+      --blue-dim: rgba(56, 139, 253, .12);
+      --cyan: #58d1ff;
+      --green: #3fb950;
+      --green-dim: rgba(63, 185, 80, .12);
+      --amber: #d29922;
+      --amber-dim: rgba(210, 153, 34, .12);
+      --red: #f85149;
+      --red-dim: rgba(248, 81, 73, .12);
+      --t1: #e6edf3;
+      --t2: #8b949e;
+      --t3: #484f58;
+      --radius: 10px;
+      --sidebar-w: 220px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+
+    input,
+    textarea {
+      font-family: inherit;
+      outline: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg4);
+      border-radius: 99px;
+    }
+
+    /* ── Utilities ────────────────────────────────────────────────────────────── */
+    .hidden {
+      display: none !important;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .col {
+      flex-direction: column;
+    }
+
+    .gap-1 {
+      gap: 4px;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .gap-3 {
+      gap: 12px;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .grow {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .w-full {
+      width: 100%;
+    }
+
+    /* ── Animations ───────────────────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% 0
+      }
+
+      100% {
+        background-position: -200% 0
+      }
+    }
+
+    @keyframes gradMove {
+
+      0%,
+      100% {
+        background-position: 0% 50%
+      }
+
+      50% {
+        background-position: 100% 50%
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn .2s ease both;
+    }
+
+    /* ── Login Screen ─────────────────────────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(56, 139, 253, .18) 0%, transparent 70%),
+        var(--bg);
+    }
+
+    .login-card {
+      width: 380px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 40px 36px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(56, 139, 253, .05);
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .login-logo .shield {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(56, 139, 253, .4);
+      font-size: 22px;
+    }
+
+    .login-logo h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+    }
+
+    .login-logo h1 span {
+      color: var(--blue);
+    }
+
+    .login-tagline {
+      color: var(--t2);
+      font-size: 13px;
+      margin-bottom: 32px;
+      padding-left: 56px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--t2);
+      margin-bottom: 6px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--t1);
+      font-size: 14px;
+      transition: border-color .15s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+
+    .form-group select option {
+      background: var(--bg3);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 11px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity .15s, transform .1s;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover {
+      opacity: .9;
+    }
+
+    .btn-primary:active {
+      transform: scale(.98);
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      color: var(--t3);
+      font-size: 12px;
+    }
+
+    .login-footer span {
+      color: var(--green);
+    }
+
+    /* ── App Shell ────────────────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo .shield-sm {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 0 14px rgba(56, 139, 253, .35);
+    }
+
+    .sidebar-logo span {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -.2px;
+    }
+
+    .sidebar-logo span em {
+      color: var(--blue);
+      font-style: normal;
+    }
+
+    .sidebar-user {
+      margin: 12px 16px;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1f4080, #2d6bc4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      min-width: 0;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .user-email {
+      font-size: 11px;
+      color: var(--t2);
+    }
+
+    .role-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .role-badge.employee {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .role-badge.admin {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 8px;
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      font-size: 11px;
+      color: var(--t3);
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      padding: 12px 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t2);
+      transition: all .12s;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background: var(--bg3);
+      color: var(--t1);
+    }
+
+    .nav-item.active {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .nav-item .icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--red);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .provider-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--t2);
+      margin-bottom: 10px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.green {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .dot.amber {
+      background: var(--amber);
+      box-shadow: 0 0 6px var(--amber);
+    }
+
+    .btn-signout {
+      width: 100%;
+      padding: 7px 10px;
+      background: transparent;
+      color: var(--t3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 12px;
+      transition: all .12s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-signout:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ── Main Content ─────────────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-header {
+      padding: 0 24px;
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .main-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .main-subtitle {
+      font-size: 12px;
+      color: var(--t2);
+      margin-top: 1px;
+    }
+
+    /* ── Chat View ────────────────────────────────────────────────────────────── */
+    #view-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Suggested prompts */
+    .prompts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .prompt-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--t2);
+      transition: all .15s;
+      text-align: left;
+    }
+
+    .prompt-card:hover {
+      border-color: var(--blue);
+      color: var(--t1);
+      background: var(--blue-dim);
+    }
+
+    .prompt-card strong {
+      display: block;
+      font-size: 13px;
+      color: var(--t1);
+      margin-bottom: 3px;
+    }
+
+    .welcome-msg {
+      text-align: center;
+      padding: 32px 16px 16px;
+    }
+
+    .welcome-msg h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .welcome-msg p {
+      color: var(--t2);
+      font-size: 13px;
+    }
+
+    /* Chat bubbles */
+    .msg {
+      display: flex;
+      gap: 10px;
+      animation: fadeIn .2s ease;
+    }
+
+    .msg.user {
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .msg.user .msg-avatar {
+      background: linear-gradient(135deg, #1f4080, #388bfd);
+      color: #fff;
+    }
+
+    .msg.assistant .msg-avatar {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .msg-body {
+      max-width: 75%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .msg.user .msg-body {
+      align-items: flex-end;
+    }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--blue);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .msg-bubble {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--t1);
+    }
+
+    /* Agent reasoning accordion */
+    .reasoning-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      color: var(--t2);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 0;
+      cursor: pointer;
+      transition: color .12s;
+    }
+
+    .reasoning-toggle:hover {
+      color: var(--t1);
+    }
+
+    .reasoning-toggle .chevron {
+      transition: transform .2s;
+      font-size: 10px;
+    }
+
+    .reasoning-toggle.open .chevron {
+      transform: rotate(90deg);
+    }
+
+    .reasoning-steps {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .reasoning-steps.open {
+      display: block;
+      animation: fadeIn .15s;
+    }
+
+    .step {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step-tool-call {
+      border-left: 2px solid var(--blue);
+    }
+
+    .step-tool-result {
+      border-left: 2px solid var(--green);
+    }
+
+    .step-guardrail {
+      border-left: 2px solid var(--red);
+      background: var(--red-dim);
+    }
+
+    .step-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .step-tool-call .step-label {
+      color: var(--blue);
+    }
+
+    .step-tool-result .step-label {
+      color: var(--green);
+    }
+
+    .step-guardrail .step-label {
+      color: var(--red);
+    }
+
+    .step-name {
+      font-weight: 600;
+      color: var(--t1);
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .step-data {
+      color: var(--t2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--t3);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(2) {
+      animation-delay: .2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+      animation-delay: .4s;
+    }
+
+    /* Chat input */
+    .chat-input-area {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chat-input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: border-color .15s;
+    }
+
+    .chat-input-wrap:focus-within {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+
+    #chat-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--t1);
+      font-size: 14px;
+      resize: none;
+      max-height: 120px;
+      min-height: 24px;
+      line-height: 1.5;
+    }
+
+    #chat-input::placeholder {
+      color: var(--t3);
+    }
+
+    #send-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: opacity .15s, transform .1s;
+    }
+
+    #send-btn:hover {
+      opacity: .85;
+    }
+
+    #send-btn:active {
+      transform: scale(.92);
+    }
+
+    #send-btn:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    /* ── Admin Queue View ─────────────────────────────────────────────────────── */
+    #view-queue {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .queue-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: fadeIn .2s;
+    }
+
+    .queue-card-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .queue-card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .queue-card-id {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--t3);
+      font-family: monospace;
+    }
+
+    .queue-card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .queue-card-sub {
+      font-size: 12px;
+      color: var(--t2);
+    }
+
+    .queue-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .queue-card-detail {
+      padding: 0 20px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .detail-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      color: var(--t3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      color: var(--t1);
+    }
+
+    .queue-card-reasoning {
+      margin: 0 20px 16px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--t2);
+    }
+
+    .queue-card-reasoning strong {
+      color: var(--amber);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+    }
+
+    .severity-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .severity-high {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .severity-unvetted {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .btn-approve {
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(63, 185, 80, .25);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all .12s;
+    }
+
+    .btn-approve:hover {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .btn-deny {
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(248, 81, 73, .25);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all .12s;
+    }
+
+    .btn-deny:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--t2);
+    }
+
+    .empty-state .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: .4;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* Resolved history */
+    .resolved-section {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .resolved-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      font-size: 12px;
+    }
+
+    .resolved-row:last-child {
+      border-bottom: none;
+    }
+
+    .status-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .status-approved {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .status-denied {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    /* ── Audit Log View ───────────────────────────────────────────────────────── */
+    #view-audit {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .audit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .audit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      animation: fadeIn .2s;
+    }
+
+    .audit-ts {
+      color: var(--t3);
+      font-family: monospace;
+      flex-shrink: 0;
+    }
+
+    .audit-action {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .outcome-success {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .outcome-pending,
+    .outcome-escalated {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .outcome-approved {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .outcome-denied {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .outcome-default {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .audit-detail {
+      color: var(--t2);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .audit-detail strong {
+      color: var(--t1);
+    }
+
+    .audit-role {
+      font-family: monospace;
+      color: var(--blue);
+      font-size: 11px;
+      flex-shrink: 0;
+      max-width: 200px;
+    }
+
+    /* ── Toast notifications ──────────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+      animation: fadeIn .2s ease;
+      min-width: 200px;
+    }
+
+    .toast.success {
+      border-color: rgba(63, 185, 80, .3);
+    }
+
+    .toast.error {
+      border-color: rgba(248, 81, 73, .3);
+    }
+
+    .toast-icon {
+      font-size: 16px;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--blue);
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── MCP Tools View ───────────────────────────────────────────────────────── */
+    #view-mcp {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .mcp-server-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .mcp-server-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(56, 139, 253, .3);
+    }
+
+    .mcp-server-meta {
+      flex: 1;
+    }
+
+    .mcp-server-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .mcp-server-detail {
+      font-size: 12px;
+      color: var(--t2);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .mcp-server-detail span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mcp-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(63, 185, 80, .2);
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .mcp-status-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    .mcp-tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+
+    .mcp-tool-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color .15s;
+    }
+
+    .mcp-tool-card:hover {
+      border-color: var(--border2);
+    }
+
+    .mcp-tool-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+
+    .mcp-tool-desc {
+      font-size: 12px;
+      color: var(--t2);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .mcp-tool-params {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mcp-param {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+
+    .mcp-param-name {
+      font-family: monospace;
+      color: var(--blue);
+    }
+
+    .mcp-param-type {
+      color: var(--t3);
+    }
+
+    .mcp-param-req {
+      color: var(--red);
+      font-size: 10px;
+      margin-left: auto;
+    }
+
+    /* ── Resources View ───────────────────────────────────────────────────────── */
+    #view-resources {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .res-tab {
+      background: none;
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      cursor: pointer;
+      transition: color .15s;
+    }
+
+    .res-tab.active {
+      color: var(--t1);
+      background: var(--bg2);
+      border-color: var(--border);
+      border-bottom: 1px solid var(--bg2);
+      margin-bottom: -1px;
+    }
+
+    .res-tab-panel {
+      animation: fadeIn .2s;
+    }
+
+    .res-tab-panel.hidden {
+      display: none !important;
+    }
+
+    .resource-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .resource-table th {
+      text-align: left;
+      color: var(--t3);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .resource-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      color: var(--t2);
+      vertical-align: middle;
+    }
+
+    .resource-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .resource-table tr:hover td {
+      background: var(--bg3);
+    }
+
+    .resource-table td:first-child {
+      color: var(--t1);
+      font-weight: 500;
+      font-family: monospace;
+    }
+
+    .res-type-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+
+    .res-type-compute {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .res-type-disk {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .res-type-bucket {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .res-status-running {
+      color: var(--green);
+    }
+
+    .res-status-terminated {
+      color: var(--t3);
+    }
+
+    .res-status-unattached {
+      color: var(--amber);
+    }
+
+    .res-status-active {
+      color: var(--cyan);
+    }
+
+    .rec-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      animation: fadeIn .2s;
+    }
+
+    .rec-card:hover {
+      border-color: var(--border2);
+    }
+
+    .rec-priority {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .rec-priority-P1,
+    .rec-priority-P2 {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .rec-priority-P3 {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .rec-priority-P4 {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .rec-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rec-resource {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--t1);
+      margin-bottom: 4px;
+    }
+
+    .rec-desc {
+      font-size: 12px;
+      color: var(--t2);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .rec-savings {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .rec-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-flag {
+      background: var(--amber-dim);
+      border: 1px solid rgba(210, 153, 34, .3);
+      color: var(--amber);
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-flag:hover {
+      background: rgba(210, 153, 34, .2);
+    }
+
+    .term-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      animation: fadeIn .2s;
+    }
+
+    .term-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .term-resource {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--t1);
+    }
+
+    .term-meta {
+      font-size: 12px;
+      color: var(--t2);
+      margin-top: 2px;
+    }
+
+    .term-reason {
+      font-size: 12px;
+      color: var(--t2);
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+    }
+
+    .term-justif-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--t1);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 60px;
+      margin-bottom: 10px;
+    }
+
+    .term-justif-input:focus {
+      border-color: var(--border2);
+    }
+
+    .term-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ── Modal ───────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+    }
+
+    .modal-box {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 28px 32px;
+      width: 420px;
+      max-width: 94vw;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-resource {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+
+    .modal-label {
+      font-size: 12px;
+      color: var(--t2);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ LOGIN SCREEN ══════════════════════════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="shield">🛡️</div>
+        <h1>Access <span>Mind</span></h1>
+      </div>
+      <p class="login-tagline">AI-powered cloud access & resource management</p>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@company.com" />
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="login-role">
+          <option value="employee">Employee</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="login-btn">Sign In →</button>
+
+      <p class="login-footer">Protected by <span>●</span> GCP IAM</p>
+    </div>
+  </div>
+
+  <!-- ══ APP SHELL ═════════════════════════════════════════════════════════════ -->
+  <div id="app" class="hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="shield-sm">🛡️</div>
+          <span>Access <em>Mind</em></span>
+        </div>
+      </div>
+
+      <div class="sidebar-user flex gap-2 items-center" style="flex-direction:row;">
+        <div class="user-avatar" id="sb-avatar">A</div>
+        <div class="user-info grow truncate">
+          <div class="user-name truncate" id="sb-name">—</div>
+          <div class="user-email truncate" id="sb-email">—</div>
+        </div>
+        <span class="role-badge" id="sb-role-badge">—</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">Workspace</div>
+        <div class="nav-item active" data-view="chat" onclick="navigate('chat')">
+          <span class="icon">💬</span> Request Access
+        </div>
+        <div class="nav-item admin-only hidden" data-view="queue" onclick="navigate('queue')">
+          <span class="icon">🔐</span> Admin Queue
+          <span class="nav-badge hidden" id="queue-badge">0</span>
+        </div>
+        <div class="nav-item admin-only hidden" data-view="resources" onclick="navigate('resources')">
+          <span class="icon">⚡</span> Resources
+          <span class="nav-badge hidden" id="resource-badge">0</span>
+        </div>
+        <div class="nav-item admin-only hidden" data-view="mcp" onclick="navigate('mcp')">
+          <span class="icon">🔌</span> MCP Tools
+        </div>
+        <div class="nav-item admin-only hidden" data-view="audit" onclick="navigate('audit')">
+          <span class="icon">📋</span> Audit Log
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="provider-pill">
+          <div class="dot" id="provider-dot"></div>
+          <span id="provider-label">Connecting…</span>
+        </div>
+        <button class="btn-signout" onclick="signOut()">↩ Sign out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+
+      <!-- Header -->
+      <div class="main-header">
+        <div>
+          <div class="main-title" id="main-title">Request Access</div>
+          <div class="main-subtitle" id="main-subtitle">Ask the AI agent for the access you need</div>
+        </div>
+        <button onclick="navigate('chat'); clearChat()" style="background:none;color:var(--t3);font-size:12px;">✕ Clear
+          chat</button>
+      </div>
+
+      <!-- ── Chat View ─────────────────────────────────────────────────────── -->
+      <div id="view-chat" class="flex col" style="flex:1;overflow:hidden;">
+        <div class="chat-messages" id="chat-messages">
+          <div id="welcome-block">
+            <div class="welcome-msg">
+              <h2>Good day 👋</h2>
+              <p>Tell me what access you need — I'll handle the rest.</p>
+            </div>
+            <div class="prompts-grid" id="prompts-grid">
+              <button class="prompt-card" onclick="prefill(this)">
+                <strong>📦 Read from Cloud Storage</strong>
+                I need to read training data from Cloud Storage. Can you check what projects are available?
+              </button>
+              <button class="prompt-card" onclick="prefill(this)">
+                <strong>📊 BigQuery access</strong>
+                I need to run BigQuery queries. Please show me available projects first.
+              </button>
+              <button class="prompt-card" onclick="prefill(this)">
+                <strong>🚨 Owner access (escalates)</strong>
+                I need owner access on one of our projects to configure everything.
+              </button>
+              <button class="prompt-card" onclick="prefill(this)">
+                <strong>🤖 Vertex AI for LLMs</strong>
+                I'm building an LLM pipeline and need Vertex AI API access. What projects are available?
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="chat-input-wrap">
+            <textarea id="chat-input" rows="1" placeholder="Ask for access…" onkeydown="handleKey(event)"
+              oninput="autoResize(this)"></textarea>
+            <button id="send-btn" onclick="sendMessage()" title="Send">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Admin Queue View ──────────────────────────────────────────────── -->
+      <div id="view-queue" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:600;">Pending Requests</div>
+          <button onclick="loadQueue()" style="background:none;color:var(--t2);font-size:12px;">↺ Refresh</button>
+        </div>
+        <div id="queue-pending"></div>
+        <div class="resolved-section" id="queue-resolved-section" style="margin-top:16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--t2);margin-bottom:12px;">Resolved</div>
+          <div id="queue-resolved"></div>
+        </div>
+      </div>
+
+      <!-- ── Audit Log View ────────────────────────────────────────────────── -->
+      <div id="view-audit" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:600;">Audit Trail</div>
+          <button onclick="loadAudit()" style="background:none;color:var(--t2);font-size:12px;">↺ Refresh</button>
+        </div>
+        <div class="audit-list" id="audit-list"></div>
+      </div>
+
+      <!-- ── MCP Tools View ─────────────────────────────────────────────────── -->
+      <div id="view-mcp" class="hidden" style="overflow-y:auto;flex:1;padding-bottom:24px;">
+        <div id="mcp-content">
+          <div class="empty-state">
+            <div class="icon">🔌</div>
+            <p>Loading MCP server info…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Resources View ────────────────────────────────────────────────── -->
+      <div id="view-resources" class="hidden" style="overflow-y:auto;flex:1;padding-bottom:24px;">
+        <!-- Project selector -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <select id="res-project-select"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--t1);padding:6px 10px;border-radius:var(--radius);font-size:13px;flex:1;">
+            <option value="">Select a project…</option>
+          </select>
+          <button onclick="loadResources()"
+            style="background:var(--blue-dim);border:1px solid var(--border2);color:var(--blue);padding:6px 14px;border-radius:var(--radius);font-size:13px;">Scan</button>
+          <button onclick="loadResources()" style="background:none;color:var(--t2);font-size:12px;">↺</button>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;">
+          <button class="res-tab active" data-tab="running" onclick="switchResTab(this,'running')">Running
+            Resources</button>
+          <button class="res-tab" data-tab="recommendations" onclick="switchResTab(this,'recommendations')">
+            GCP Recommendations <span id="rec-count-badge"
+              style="display:none;background:var(--amber);color:#000;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;"></span>
+          </button>
+          <button class="res-tab" data-tab="termination-queue" onclick="switchResTab(this,'termination-queue')">
+            Termination Queue <span id="term-count-badge"
+              style="display:none;background:var(--red);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;"></span>
+          </button>
+        </div>
+
+        <div id="res-tab-running" class="res-tab-panel">
+          <div class="empty-state">
+            <div class="icon">⚡</div>
+            <p>Select a project and click Scan.</p>
+          </div>
+        </div>
+        <div id="res-tab-recommendations" class="res-tab-panel hidden"></div>
+        <div id="res-tab-termination-queue" class="res-tab-panel hidden"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Flag modal -->
+  <div id="flag-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeFlagModal()">
+    <div class="modal-box">
+      <div class="modal-title">⚑ Flag for Termination</div>
+      <div class="modal-resource" id="flag-modal-resource"></div>
+      <label class="modal-label">Reason for flagging</label>
+      <textarea id="flag-reason-input" class="term-justif-input"
+        placeholder="e.g. Idle for 30+ days, no active workloads…" rows="3"></textarea>
+      <div class="modal-actions">
+        <button class="btn-approve" id="flag-modal-confirm">⚑ Submit Flag</button>
+        <button class="btn-deny" onclick="closeFlagModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────────
+    const state = {
+      user: null,   // { email, role }
+      view: 'chat',
+      history: [],     // [{role, content}] for the agent
+    };
+
+    // ── Auth ─────────────────────────────────────────────────────────────────────
+    document.getElementById('login-btn').addEventListener('click', login);
+    document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+    function login() {
+      const email = document.getElementById('login-email').value.trim();
+      const role = document.getElementById('login-role').value;
+      if (!email) { toast('Enter your email address', 'error'); return; }
+      if (!email.includes('@')) { toast('Enter a valid email', 'error'); return; }
+
+      state.user = { email, role };
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      initApp();
+    }
+
+    function signOut() {
+      state.user = null;
+      state.history = [];
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('login-email').value = '';
+    }
+
+    // ── App Init ─────────────────────────────────────────────────────────────────
+    function initApp() {
+      const { email, role } = state.user;
+      const name = email.split('@')[0];
+
+      document.getElementById('sb-avatar').textContent = name[0].toUpperCase();
+      document.getElementById('sb-name').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      document.getElementById('sb-email').textContent = email;
+      const badge = document.getElementById('sb-role-badge');
+      badge.textContent = role;
+      badge.className = `role-badge ${role}`;
+
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.classList.toggle('hidden', role !== 'admin');
+      });
+
+      // Header clear button only relevant for chat
+      navigate('chat');
+      checkProvider();
+      if (role === 'admin') {
+        loadQueueBadge();
+        loadResourceBadge();
+        populateProjectSelect();
+      }
+    }
+
+    // ── Provider Status ───────────────────────────────────────────────────────────
+    async function checkProvider() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const dot = document.getElementById('provider-dot');
+        const lbl = document.getElementById('provider-label');
+        if (data.provider === 'gcp') {
+          dot.className = 'dot green';
+          lbl.textContent = 'GCP Connected';
+        } else {
+          dot.className = 'dot amber';
+          lbl.textContent = 'Mock Mode';
+        }
+      } catch {
+        document.getElementById('provider-label').textContent = 'Offline';
+      }
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────────
+    const viewTitles = {
+      chat: ['Request Access', 'Ask the AI agent for the access you need'],
+      queue: ['Admin Queue', 'Review and resolve pending access requests'],
+      resources: ['Resources', 'Running GCP resources and cost optimisation recommendations'],
+      mcp: ['MCP Tools', 'MCP server status and registered tool capabilities'],
+      audit: ['Audit Log', 'Append-only record of every IAM decision'],
+    };
+
+    function navigate(view) {
+      state.view = view;
+      ['chat', 'queue', 'resources', 'mcp', 'audit'].forEach(v => {
+        document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+      });
+      document.querySelectorAll('.nav-item[data-view]').forEach(el => {
+        el.classList.toggle('active', el.dataset.view === view);
+      });
+      const [title, sub] = viewTitles[view] || ['', ''];
+      document.getElementById('main-title').textContent = title;
+      document.getElementById('main-subtitle').textContent = sub;
+
+      if (view === 'queue') loadQueue();
+      if (view === 'audit') loadAudit();
+      if (view === 'mcp') loadMcpInfo();
+      if (view === 'resources') loadResourceBadge();
+
+      document.querySelector('.main-header button').style.display = view === 'chat' ? '' : 'none';
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────────────
+    let isStreaming = false;
+
+    function prefill(btn) {
+      const text = btn.textContent.replace(btn.querySelector('strong').textContent, '').trim();
+      document.getElementById('chat-input').value = text;
+      document.getElementById('welcome-block').remove();
+      sendMessage();
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function clearChat() {
+      state.history = [];
+      const msgs = document.getElementById('chat-messages');
+      msgs.innerHTML = `
+    <div id="welcome-block">
+      <div class="welcome-msg"><h2>Good day 👋</h2><p>Tell me what access you need — I'll handle the rest.</p></div>
+      <div class="prompts-grid" id="prompts-grid">
+        <button class="prompt-card" onclick="prefill(this)"><strong>📦 Read from Cloud Storage</strong>I need to read training data from Cloud Storage. Can you check what projects are available?</button>
+        <button class="prompt-card" onclick="prefill(this)"><strong>📊 BigQuery access</strong>I need to run BigQuery queries. Please show me available projects first.</button>
+        <button class="prompt-card" onclick="prefill(this)"><strong>🚨 Owner access (escalates)</strong>I need owner access on one of our projects to configure everything.</button>
+        <button class="prompt-card" onclick="prefill(this)"><strong>🤖 Vertex AI for LLMs</strong>I'm building an LLM pipeline and need Vertex AI API access. What projects are available?</button>
+      </div>
+    </div>`;
+    }
+
+    async function sendMessage() {
+      if (isStreaming) return;
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      // Remove welcome block
+      const wb = document.getElementById('welcome-block');
+      if (wb) wb.remove();
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      appendUserMsg(text);
+      state.history.push({ role: 'user', content: text });
+
+      isStreaming = true;
+      document.getElementById('send-btn').disabled = true;
+
+      // Assistant message container
+      const aMsg = appendAssistantMsg();
+      const steps = [];
+      let finalText = '';
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            user_email: state.user.email,
+            history: state.history.slice(0, -1), // exclude current user msg
+          }),
+        });
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            let step;
+            try { step = JSON.parse(line.slice(6)); } catch { continue; }
+
+            if (step.type === 'done') {
+              finalText = step.message;
+              updateAssistantMsg(aMsg, steps, finalText);
+            } else if (step.type === 'error') {
+              updateAssistantMsg(aMsg, steps, `⚠️ ${step.message}`);
+            } else {
+              steps.push(step);
+              updateAssistantMsg(aMsg, steps, null); // update live
+            }
+          }
+        }
+      } catch (e) {
+        updateAssistantMsg(aMsg, steps, `⚠️ Connection error: ${e.message}`);
+      }
+
+      if (finalText) state.history.push({ role: 'assistant', content: finalText });
+      isStreaming = false;
+      document.getElementById('send-btn').disabled = false;
+      input.focus();
+
+      // Refresh queue badge
+      if (state.user.role === 'admin') loadQueueBadge();
+    }
+
+    function appendUserMsg(text) {
+      const msgs = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'msg user fade-in';
+      div.innerHTML = `
+    <div class="msg-avatar">${state.user.email[0].toUpperCase()}</div>
+    <div class="msg-body"><div class="msg-bubble">${escHtml(text)}</div></div>`;
+      msgs.appendChild(div);
+      scrollBottom();
+      return div;
+    }
+
+    function appendAssistantMsg() {
+      const msgs = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'msg assistant fade-in';
+      div.innerHTML = `
+    <div class="msg-avatar">🛡️</div>
+    <div class="msg-body">
+      <div class="typing-indicator"><span></span><span></span><span></span></div>
+    </div>`;
+      msgs.appendChild(div);
+      scrollBottom();
+      return div;
+    }
+
+    function updateAssistantMsg(div, steps, finalText) {
+      const body = div.querySelector('.msg-body');
+      let html = '';
+
+      // Reasoning accordion (if any steps)
+      if (steps.length > 0) {
+        const id = 'r' + Date.now();
+        html += `
+      <button class="reasoning-toggle" onclick="toggleReasoning('${id}', this)">
+        <span class="chevron">▶</span> Agent reasoning (${steps.length} step${steps.length > 1 ? 's' : ''})
+      </button>
+      <div class="reasoning-steps" id="${id}">
+        ${steps.map(renderStep).join('')}
+      </div>`;
+      }
+
+      if (finalText) {
+        html += `<div class="msg-bubble">${escHtml(finalText)}</div>`;
+      } else {
+        html += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+      }
+
+      body.innerHTML = html;
+      scrollBottom();
+    }
+
+    function renderStep(step) {
+      if (step.type === 'tool_call') {
+        const input = step.tool_input && Object.keys(step.tool_input).length
+          ? JSON.stringify(step.tool_input, null, 2) : '—';
+        return `<div class="step step-tool-call">
+      <div class="step-label">Tool Call</div>
+      <div class="step-name">${escHtml(step.tool_name)}</div>
+      <div class="step-data">${escHtml(input)}</div>
+    </div>`;
+      }
+      if (step.type === 'tool_result') {
+        const result = step.tool_result ? JSON.stringify(step.tool_result, null, 2) : '—';
+        return `<div class="step step-tool-result">
+      <div class="step-label">Result</div>
+      <div class="step-name">${escHtml(step.tool_name)}</div>
+      <div class="step-data">${escHtml(result.slice(0, 400))}${result.length > 400 ? '…' : ''}</div>
+    </div>`;
+      }
+      if (step.type === 'guardrail') {
+        return `<div class="step step-guardrail">
+      <div class="step-label">Guardrail Fired</div>
+      <div class="step-data">${escHtml(step.message)}</div>
+    </div>`;
+      }
+      return '';
+    }
+
+    function toggleReasoning(id, btn) {
+      const el = document.getElementById(id);
+      const open = el.classList.toggle('open');
+      btn.classList.toggle('open', open);
+    }
+
+    // ── Admin Queue ───────────────────────────────────────────────────────────────
+    async function loadQueueBadge() {
+      try {
+        const res = await fetch('/api/queue');
+        const data = await res.json();
+        const badge = document.getElementById('queue-badge');
+        if (data.length > 0) {
+          badge.textContent = data.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      } catch { }
+    }
+
+    async function loadQueue() {
+      try {
+        const [pending, all] = await Promise.all([
+          fetch('/api/queue').then(r => r.json()),
+          fetch('/api/queue/all').then(r => r.json()),
+        ]);
+
+        const pendingEl = document.getElementById('queue-pending');
+        const resolvedEl = document.getElementById('queue-resolved');
+
+        if (pending.length === 0) {
+          pendingEl.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>No pending requests — all clear!</p></div>`;
+        } else {
+          pendingEl.innerHTML = pending.map(renderQueueCard).join('');
+        }
+
+        const resolved = all.filter(r => r.status !== 'pending').reverse().slice(0, 15);
+        if (resolved.length === 0) {
+          resolvedEl.innerHTML = `<p style="color:var(--t3);font-size:12px;">No resolved requests yet.</p>`;
+        } else {
+          resolvedEl.innerHTML = resolved.map(r => `
+        <div class="resolved-row">
+          <span class="status-pill status-${r.status}">${r.status}</span>
+          <span style="color:var(--t1);font-weight:500;">${escHtml(r.requester)}</span>
+          <span style="color:var(--t2);">→</span>
+          <span class="mono" style="color:var(--blue);font-size:11px;">${escHtml(r.requested_role)}</span>
+          <span style="color:var(--t3);">on</span>
+          <span style="color:var(--t2);">${escHtml(r.project_id)}</span>
+          <span style="color:var(--t3);margin-left:auto;">by ${escHtml(r.resolved_by || '—')}</span>
+        </div>`).join('');
+        }
+
+        loadQueueBadge();
+      } catch (e) {
+        toast('Failed to load queue: ' + e.message, 'error');
+      }
+    }
+
+    function renderQueueCard(req) {
+      const isHigh = req.requested_role.includes('admin') || req.requested_role.includes('owner') || req.requested_role.includes('editor');
+      const severityClass = isHigh ? 'severity-high' : 'severity-unvetted';
+      const severityLabel = isHigh ? '🔴 High Privilege' : '🟡 Unvetted Role';
+      const ts = req.created_at ? req.created_at.slice(0, 16).replace('T', ' ') + ' UTC' : '—';
+      return `
+    <div class="queue-card" id="card-${req.id}">
+      <div class="queue-card-header">
+        <div class="queue-card-meta">
+          <div class="queue-card-id">#${escHtml(req.id)} · ${ts}</div>
+          <div class="queue-card-title">${escHtml(req.requester)}</div>
+          <div class="queue-card-sub">requests <code style="color:var(--blue)">${escHtml(req.requested_role)}</code> on <strong>${escHtml(req.project_id)}</strong></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <span class="severity-badge ${severityClass}">${severityLabel}</span>
+          <div class="queue-card-actions">
+            <button class="btn-approve" onclick="resolveRequest('${req.id}','approve')">✓ Approve</button>
+            <button class="btn-deny" onclick="resolveRequest('${req.id}','deny')">✕ Deny</button>
+          </div>
+        </div>
+      </div>
+      <div class="queue-card-detail">
+        <div class="detail-block">
+          <div class="detail-label">Justification</div>
+          <div class="detail-value">${escHtml(req.justification)}</div>
+        </div>
+        <div class="detail-block">
+          <div class="detail-label">Project</div>
+          <div class="detail-value mono">${escHtml(req.project_id)}</div>
+        </div>
+      </div>
+      <div class="queue-card-reasoning">
+        <strong>🤖 Agent Reasoning</strong>
+        ${escHtml(req.agent_reasoning)}
+      </div>
+    </div>`;
+    }
+
+    async function resolveRequest(id, action) {
+      const endpoint = action === 'approve' ? 'approve' : 'deny';
+      try {
+        const res = await fetch(`/api/queue/${id}/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ admin_email: state.user.email }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast(action === 'approve' ? '✅ Request approved & role granted' : '❌ Request denied', action === 'approve' ? 'success' : 'error');
+          document.getElementById(`card-${id}`)?.remove();
+          loadQueue();
+        } else {
+          toast('Error: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    }
+
+    // ── Audit Log ─────────────────────────────────────────────────────────────────
+    async function loadAudit() {
+      try {
+        const data = await fetch('/api/audit?limit=100').then(r => r.json());
+        const list = document.getElementById('audit-list');
+        if (data.length === 0) {
+          list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No audit events yet.</p></div>`;
+          return;
+        }
+        list.innerHTML = data.map(entry => {
+          const outcome = entry.outcome || '';
+          let cls = 'outcome-default';
+          if (outcome === 'success') cls = 'outcome-success';
+          else if (outcome.includes('pending') || outcome.includes('escalat')) cls = 'outcome-escalated';
+          else if (outcome === 'approved') cls = 'outcome-approved';
+          else if (outcome === 'denied') cls = 'outcome-denied';
+
+          const action = (entry.action || '').replace(/_/g, ' ').toUpperCase();
+          const ts = (entry.timestamp || '').slice(0, 16).replace('T', ' ');
+          return `
+        <div class="audit-row">
+          <span class="audit-ts">${escHtml(ts)}</span>
+          <span class="audit-action ${cls}">${escHtml(action)}</span>
+          <span class="audit-detail"><strong>${escHtml(entry.target_user || '')}</strong> on ${escHtml(entry.project || '')}</span>
+          <span class="audit-role truncate">${escHtml(entry.role || '')}</span>
+          <span style="color:var(--t3);font-size:11px;flex-shrink:0;">by ${escHtml(entry.actor || '')}</span>
+        </div>`;
+        }).join('');
+      } catch (e) {
+        toast('Failed to load audit: ' + e.message, 'error');
+      }
+    }
+
+    // ── MCP Tools View ────────────────────────────────────────────────────────────
+    async function loadMcpInfo() {
+      const el = document.getElementById('mcp-content');
+      el.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 12px;width:24px;height:24px;"></div><p>Loading…</p></div>';
+      try {
+        const data = await fetch('/api/mcp').then(r => r.json());
+        el.innerHTML = `
+      <div class="mcp-server-card">
+        <div class="mcp-server-icon">🔌</div>
+        <div class="mcp-server-meta">
+          <div class="mcp-server-name">${escHtml(data.server)}</div>
+          <div class="mcp-server-detail">
+            <span>v${escHtml(data.version)}</span>
+            <span>Transport: <strong style="color:var(--t1)">${escHtml(data.transport)}</strong></span>
+            <span>${data.tool_count} tools registered</span>
+          </div>
+        </div>
+        <div class="mcp-status-pill"><div class="dot"></div> Active</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Registered Tools</div>
+      <div class="mcp-tools-grid">
+        ${data.tools.map(renderMcpTool).join('')}
+      </div>`;
+      } catch (e) {
+        el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Failed to load MCP info: ${escHtml(e.message)}</p></div>`;
+      }
+    }
+
+    function renderMcpTool(tool) {
+      const params = tool.parameters || [];
+      return `
+    <div class="mcp-tool-card fade-in">
+      <div class="mcp-tool-name">${escHtml(tool.name)}</div>
+      <div class="mcp-tool-desc">${escHtml(tool.description)}</div>
+      ${params.length ? `
+        <div class="mcp-tool-params">
+          ${params.map(p => `
+            <div class="mcp-param">
+              <span class="mcp-param-name">${escHtml(p.name)}</span>
+              <span class="mcp-param-type">${escHtml(p.type)}</span>
+              ${p.required ? '<span class="mcp-param-req">required</span>' : ''}
+            </div>`).join('')}
+        </div>` : '<div style="font-size:11px;color:var(--t3);">No parameters</div>'}
+    </div>`;
+    }
+
+    // ── Resources View ────────────────────────────────────────────────────────────
+    let _resourcesData = null;
+
+    async function populateProjectSelect() {
+      try {
+        const projects = await fetch('/api/projects').then(r => r.json());
+        const sel = document.getElementById('res-project-select');
+        sel.innerHTML = '<option value="">Select a project…</option>' +
+          projects.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name)} (${escHtml(p.id)})</option>`).join('');
+      } catch { }
+    }
+
+    async function loadResourceBadge() {
+      try {
+        const data = await fetch('/api/resource-queue').then(r => r.json());
+        const badge = document.getElementById('resource-badge');
+        if (data.length > 0) {
+          badge.textContent = data.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      } catch { }
+    }
+
+    async function loadResources() {
+      const projectId = document.getElementById('res-project-select').value;
+      if (!projectId) { toast('Select a project first', 'error'); return; }
+
+      document.getElementById('res-tab-running').innerHTML =
+        '<div class="empty-state"><div class="spinner" style="margin:0 auto 12px;width:24px;height:24px;"></div><p>Scanning resources…</p></div>';
+      document.getElementById('res-tab-recommendations').innerHTML = '';
+      document.getElementById('res-tab-termination-queue').innerHTML = '';
+
+      try {
+        const [resData, queueData] = await Promise.all([
+          fetch(`/api/resources/${encodeURIComponent(projectId)}`).then(r => r.json()),
+          fetch('/api/resource-queue/all').then(r => r.json()),
+        ]);
+        _resourcesData = { projectId, ...resData };
+
+        renderRunningResources(resData.resources || []);
+        renderRecommendations(resData.recommendations || [], projectId);
+        renderTerminationQueue(queueData || []);
+        loadResourceBadge();
+      } catch (e) {
+        document.getElementById('res-tab-running').innerHTML =
+          `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+      }
+    }
+
+    function switchResTab(btn, tab) {
+      document.querySelectorAll('.res-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['running', 'recommendations', 'termination-queue'].forEach(t => {
+        document.getElementById(`res-tab-${t}`).classList.toggle('hidden', t !== tab);
+      });
+    }
+
+    function renderRunningResources(resources) {
+      const el = document.getElementById('res-tab-running');
+      if (!resources.length) {
+        el.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No resources found for this project.</p></div>';
+        return;
+      }
+      const typeLabel = { compute_instance: 'VM Instance', disk: 'Disk', bucket: 'Bucket' };
+      const typeClass = { compute_instance: 'res-type-compute', disk: 'res-type-disk', bucket: 'res-type-bucket' };
+      const statusClass = { RUNNING: 'res-status-running', TERMINATED: 'res-status-terminated', UNATTACHED: 'res-status-unattached', ACTIVE: 'res-status-active', ATTACHED: 'res-status-running' };
+      const projectId = _resourcesData ? _resourcesData.projectId : '';
+      el.innerHTML = `
+    <table class="resource-table">
+      <thead><tr>
+        <th>Name</th><th>Type</th><th>Status</th><th>Zone / Region</th><th>Details</th><th>Created</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${resources.map(r => `
+          <tr>
+            <td>${escHtml(r.name)}</td>
+            <td><span class="res-type-badge ${typeClass[r.resource_type] || ''}">${escHtml(typeLabel[r.resource_type] || r.resource_type)}</span></td>
+            <td><span class="${statusClass[r.status] || ''}">${escHtml(r.status)}</span></td>
+            <td style="font-family:monospace;font-size:11px;">${escHtml(r.zone || r.region || '—')}</td>
+            <td style="font-size:11px;">${r.machine_type ? escHtml(r.machine_type) : r.size_gb ? escHtml(r.size_gb) + ' GB' : '—'}</td>
+            <td style="font-family:monospace;font-size:11px;">${r.created_at ? escHtml(r.created_at.slice(0, 10)) : '—'}</td>
+            <td><button class="btn-flag" style="padding:3px 10px;font-size:11px;"
+              data-rid="${escHtml(r.name)}"
+              data-rtype="${escHtml(r.resource_type)}"
+              data-zone="${escHtml(r.zone || r.region || '')}"
+              data-project="${escHtml(projectId)}"
+              data-desc="${escHtml(r.name + ' (' + r.resource_type + ')')}"
+              onclick="flagResourceFromRow(this)">⚑ Flag</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+    }
+
+    function renderRecommendations(recs, projectId) {
+      const el = document.getElementById('res-tab-recommendations');
+      const badge = document.getElementById('rec-count-badge');
+      if (!recs.length) {
+        el.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No active recommendations — all resources look healthy!</p></div>';
+        badge.style.display = 'none';
+        return;
+      }
+      badge.textContent = recs.length;
+      badge.style.display = '';
+      el.innerHTML = recs.map(rec => `
+    <div class="rec-card fade-in">
+      <div class="rec-priority rec-priority-${escHtml(rec.priority)}">${escHtml(rec.priority)}</div>
+      <div class="rec-body">
+        <div class="rec-resource">🖥 ${escHtml(rec.resource_name)} <span style="color:var(--t3);font-weight:400;">(${escHtml(rec.resource_type.replace('_', ' '))})</span></div>
+        <div class="rec-desc">${escHtml(rec.description)}</div>
+        ${rec.estimated_monthly_savings_usd != null ? `<div class="rec-savings">💰 Estimated savings: ~$${rec.estimated_monthly_savings_usd.toFixed(2)}/mo</div>` : ''}
+        <div class="rec-actions">
+          <button class="btn-flag"
+            data-rid="${escHtml(rec.resource_name)}"
+            data-rtype="${escHtml(rec.resource_type)}"
+            data-zone="${escHtml(rec.zone || '')}"
+            data-project="${escHtml(projectId)}"
+            data-desc="${escHtml(rec.description)}"
+            onclick="flagResourceFromRow(this)">⚑ Flag for Termination</button>
+        </div>
+      </div>
+    </div>`).join('');
+    }
+
+    // ── Flag modal ────────────────────────────────────────────────────────────────
+    let _pendingFlag = null;
+
+    function flagResourceFromRow(btn) {
+      _pendingFlag = {
+        resourceId: btn.dataset.rid,
+        resourceType: btn.dataset.rtype,
+        zone: btn.dataset.zone,
+        projectId: btn.dataset.project,
+        description: btn.dataset.desc,
+      };
+      document.getElementById('flag-modal-resource').textContent =
+        _pendingFlag.resourceId + ' (' + _pendingFlag.resourceType.replace('_', ' ') + ')';
+      document.getElementById('flag-reason-input').value = '';
+      document.getElementById('flag-modal').classList.remove('hidden');
+      document.getElementById('flag-reason-input').focus();
+    }
+
+    function closeFlagModal() {
+      document.getElementById('flag-modal').classList.add('hidden');
+      _pendingFlag = null;
+    }
+
+    document.getElementById('flag-modal-confirm').addEventListener('click', async () => {
+      if (!_pendingFlag) return;
+      const reason = document.getElementById('flag-reason-input').value.trim();
+      if (!reason) {
+        document.getElementById('flag-reason-input').style.borderColor = 'var(--red)';
+        return;
+      }
+      document.getElementById('flag-reason-input').style.borderColor = '';
+      const { resourceId, resourceType, zone, projectId, description } = _pendingFlag;
+      closeFlagModal();
+      try {
+        const res = await fetch('/api/resource-queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resource_id: resourceId, resource_type: resourceType,
+            project_id: projectId, zone: zone,
+            description: description,
+            flagged_by: state.user.email, flag_reason: reason,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast(`Flagged for termination (ID: ${data.request_id})`, 'success');
+          loadResourceBadge();
+          const allQ = await fetch('/api/resource-queue/all').then(r => r.json());
+          renderTerminationQueue(allQ);
+        } else {
+          toast('Error flagging resource', 'error');
+        }
+      } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    });
+
+    function renderTerminationQueue(queue) {
+      const el = document.getElementById('res-tab-termination-queue');
+      const badge = document.getElementById('term-count-badge');
+      const pending = queue.filter(r => r.status === 'pending');
+      const resolved = queue.filter(r => r.status !== 'pending').reverse().slice(0, 10);
+
+      if (pending.length > 0) {
+        badge.textContent = pending.length;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      let html = '';
+      if (pending.length === 0) {
+        html += '<div class="empty-state" style="padding:32px 24px;"><div class="icon">✅</div><p>No pending termination requests.</p></div>';
+      } else {
+        html += `<div style="font-size:13px;font-weight:600;margin-bottom:12px;">Pending Approval (${pending.length})</div>`;
+        html += pending.map(r => renderTerminationCard(r)).join('');
+      }
+      if (resolved.length > 0) {
+        html += `<div style="font-size:13px;font-weight:600;color:var(--t2);margin:20px 0 12px;border-top:1px solid var(--border);padding-top:16px;">Resolved</div>`;
+        html += resolved.map(r => `
+      <div class="resolved-row">
+        <span class="status-pill status-${r.status}">${r.status}</span>
+        <span style="color:var(--t1);font-family:monospace;">${escHtml(r.resource_id)}</span>
+        <span style="color:var(--t3);">(${escHtml(r.resource_type)})</span>
+        <span style="color:var(--t3);margin-left:auto;font-size:11px;">by ${escHtml(r.resolved_by || '—')}</span>
+      </div>`).join('');
+      }
+      el.innerHTML = html;
+    }
+
+    function renderTerminationCard(req) {
+      const ts = req.created_at ? req.created_at.slice(0, 16).replace('T', ' ') + ' UTC' : '—';
+      return `
+    <div class="term-card" id="term-card-${req.id}">
+      <div class="term-card-header">
+        <div>
+          <div class="term-resource">🗑 ${escHtml(req.resource_id)}</div>
+          <div class="term-meta">${escHtml(req.resource_type.replace('_', ' '))} · ${escHtml(req.project_id)} · ${escHtml(req.zone || 'no zone')} · #${escHtml(req.id)} · ${ts}</div>
+        </div>
+        <span style="color:var(--amber);font-size:11px;font-weight:600;">🟡 Pending</span>
+      </div>
+      <div class="term-reason"><strong>Flagged by:</strong> ${escHtml(req.flagged_by)} &nbsp;|&nbsp; <strong>Reason:</strong> ${escHtml(req.flag_reason)}</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px;">⚠️ Approving will <strong style="color:var(--red)">immediately stop/delete</strong> this resource. Enter your justification below:</div>
+      <textarea class="term-justif-input" id="justif-${req.id}" placeholder="Justification for approving this termination (required)…"></textarea>
+      <div class="term-card-actions">
+        <button class="btn-approve" onclick="resolveTermination('${req.id}','approve')">✓ Approve &amp; Terminate</button>
+        <button class="btn-deny" onclick="resolveTermination('${req.id}','deny')">✕ Deny</button>
+      </div>
+    </div>`;
+    }
+
+    async function resolveTermination(id, action) {
+      const justifEl = document.getElementById(`justif-${id}`);
+      const justification = justifEl ? justifEl.value.trim() : '';
+      if (action === 'approve' && !justification) {
+        toast('Justification is required to approve termination', 'error');
+        justifEl.focus();
+        return;
+      }
+      const endpoint = action === 'approve' ? 'approve' : 'deny';
+      try {
+        const res = await fetch(`/api/resource-queue/${id}/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ admin_email: state.user.email, admin_justification: justification }),
+        });
+        const data = await res.json();
+        if (data.success !== false) {
+          toast(action === 'approve' ? '✅ Resource termination initiated' : '❌ Termination denied', action === 'approve' ? 'success' : 'error');
+          document.getElementById(`term-card-${id}`)?.remove();
+          loadResourceBadge();
+          const allQ = await fetch('/api/resource-queue/all').then(r => r.json());
+          renderTerminationQueue(allQ);
+        } else {
+          toast('Error: ' + (data.error || data.message || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+    function scrollBottom() {
+      const msgs = document.getElementById('chat-messages');
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function escHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function toast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span class="toast-icon">${type === 'success' ? '✅' : '⚠️'}</span> ${escHtml(msg)}`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+  </script>
+</body>
+
+</html>

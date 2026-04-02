@@ -9,14 +9,15 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-QUEUE_FILE = Path("admin_queue.json")
-AUDIT_FILE = Path("audit.log")
+QUEUE_FILE          = Path("admin_queue.json")
+RESOURCE_QUEUE_FILE = Path("resource_queue.json")
+AUDIT_FILE          = Path("audit.log")
 
 logger = logging.getLogger(__name__)
 
-# Lock for thread-safe file access within a single process (multiple Streamlit threads)
-_queue_lock = threading.Lock()
-_audit_lock = threading.Lock()
+_queue_lock    = threading.Lock()
+_resource_lock = threading.Lock()
+_audit_lock    = threading.Lock()
 
 
 # ── Admin Queue ───────────────────────────────────────────────────────────────
@@ -143,3 +144,95 @@ def get_audit_log(limit: int = 50) -> list[dict]:
             except Exception:
                 logger.warning(f"Skipping corrupted audit log entry: {line[:80]!r}")
     return list(reversed(entries))[:limit]
+
+
+# ── Resource Termination Queue ────────────────────────────────────────────────
+
+def _load_resource_queue() -> list[dict]:
+    if RESOURCE_QUEUE_FILE.exists():
+        try:
+            return json.loads(RESOURCE_QUEUE_FILE.read_text())
+        except Exception:
+            return []
+    return []
+
+
+def _save_resource_queue(items: list[dict]):
+    RESOURCE_QUEUE_FILE.write_text(json.dumps(items, indent=2))
+
+
+def add_termination_request(
+    resource_id: str,
+    resource_type: str,
+    project_id: str,
+    zone: str,
+    description: str,
+    flagged_by: str,
+    flag_reason: str,
+) -> str:
+    """Queue a resource for admin approval before termination."""
+    with _resource_lock:
+        items = _load_resource_queue()
+        request_id = str(uuid.uuid4())[:8].upper()
+        items.append({
+            "id":            request_id,
+            "status":        "pending",
+            "resource_id":   resource_id,
+            "resource_type": resource_type,
+            "project_id":    project_id,
+            "zone":          zone,
+            "description":   description,
+            "flagged_by":    flagged_by,
+            "flag_reason":   flag_reason,
+            "created_at":    datetime.now(timezone.utc).isoformat(),
+            "resolved_at":   None,
+            "resolved_by":   None,
+            "admin_justification": None,
+        })
+        _save_resource_queue(items)
+    audit(
+        actor=flagged_by,
+        action="flag_for_termination",
+        target_user="",
+        project=project_id,
+        role=resource_type,
+        outcome="pending_admin_approval",
+        detail=f"Resource: {resource_id} | Request ID: {request_id}",
+    )
+    return request_id
+
+
+def get_pending_terminations() -> list[dict]:
+    return [r for r in _load_resource_queue() if r["status"] == "pending"]
+
+
+def get_all_terminations() -> list[dict]:
+    return _load_resource_queue()
+
+
+def resolve_termination(
+    request_id: str, action: str, admin_email: str, admin_justification: str = ""
+) -> dict | None:
+    """Approve or deny a pending termination request. Returns the resolved item."""
+    if action not in ("approved", "denied"):
+        raise ValueError(f"Invalid action '{action}'")
+    with _resource_lock:
+        items = _load_resource_queue()
+        for item in items:
+            if item["id"] == request_id and item["status"] == "pending":
+                item["status"]              = action
+                item["resolved_at"]         = datetime.now(timezone.utc).isoformat()
+                item["resolved_by"]         = admin_email
+                item["admin_justification"] = admin_justification
+                _save_resource_queue(items)
+                audit(
+                    actor=admin_email,
+                    action=f"termination_{action}",
+                    target_user="",
+                    project=item["project_id"],
+                    role=item["resource_type"],
+                    outcome=action,
+                    detail=f"Resource: {item['resource_id']} | {admin_justification}",
+                )
+                return item
+    return None

@@ -3,7 +3,7 @@ IAM Guardian - Abstract Cloud Provider Interface
 Swap GCPProvider for AWSProvider or AzureProvider with zero agent changes.
 """
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -33,6 +33,43 @@ class GrantResult:
     project_id: str
     email: str
     role: str
+    message: str
+
+
+# ── Resource & Cost Optimisation Types ───────────────────────────────────────
+
+@dataclass
+class Resource:
+    id: str
+    name: str
+    resource_type: str          # "compute_instance" | "disk" | "bucket"
+    status: str                 # "RUNNING" | "TERMINATED" | "ACTIVE" | "READY"
+    zone: Optional[str] = None
+    region: Optional[str] = None
+    machine_type: Optional[str] = None
+    created_at: Optional[str] = None
+    labels: dict = field(default_factory=dict)
+    size_gb: Optional[float] = None   # disk size or approximate bucket size
+
+
+@dataclass
+class Recommendation:
+    id: str
+    resource_name: str          # short name of the flagged resource
+    resource_type: str          # "compute_instance" | "disk"
+    description: str
+    priority: str               # "P1" | "P2" | "P3" | "P4"
+    state: str                  # "ACTIVE"
+    zone: Optional[str] = None
+    estimated_monthly_savings_usd: Optional[float] = None
+    recommender_subtype: Optional[str] = None   # "STOP_VM" | "DELETE_DISK"
+
+
+@dataclass
+class TerminateResult:
+    success: bool
+    resource_id: str
+    resource_type: str
     message: str
 
 
@@ -68,3 +105,23 @@ class CloudProvider(ABC):
             if member_key in binding.members:
                 roles.append(binding.role)
         return roles
+
+    # ── Resource / Cost methods (optional — providers may raise NotImplementedError) ──
+
+    def list_resources(self, project_id: str) -> list[Resource]:
+        """Return running compute instances, disks, and storage buckets."""
+        raise NotImplementedError
+
+    def get_recommendations(self, project_id: str) -> list[Recommendation]:
+        """Return GCP Recommender API suggestions for idle/unused resources."""
+        raise NotImplementedError
+
+    def terminate_resource(
+        self,
+        project_id: str,
+        resource_type: str,
+        resource_id: str,
+        zone: Optional[str] = None,
+    ) -> TerminateResult:
+        """Stop (VM) or delete (disk/bucket) a resource after admin approval."""
+        raise NotImplementedError

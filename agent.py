@@ -23,7 +23,12 @@ import storage
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.5-flash-lite"
+
+# Server-side challenge tracker — maps request_id → number of challenges issued
+# approve_termination is blocked until at least REQUIRED_CHALLENGES are on record
+_termination_challenges: dict[str, int] = {}
+REQUIRED_CHALLENGES = 2
 
 
 # ── Tool Definitions (JSON Schema — same structure, Gemini accepts it) ─────────
@@ -33,7 +38,9 @@ TOOLS_SCHEMA = [
         "name": "list_projects",
         "description": (
             "List all cloud projects accessible to IAM Guardian. "
-            "Call this when the user hasn't specified which project they need access to."
+            "Call this when the user hasn't specified which project they need access to. "
+            "The response contains 'project_id' and 'display_name' — always use 'project_id' "
+            "(never the display name) for all subsequent tool calls."
         ),
         "parameters": {
             "type": "object",
@@ -51,7 +58,7 @@ TOOLS_SCHEMA = [
             "properties": {
                 "project_id": {
                     "type": "string",
-                    "description": "The GCP project ID (e.g. 'ml-poc-2024')",
+                    "description": "The GCP project ID from list_projects (e.g. 'my-project-123'). Use the 'project_id' field, NOT the display name.",
                 },
                 "user_email": {
                     "type": "string",
@@ -69,7 +76,7 @@ TOOLS_SCHEMA = [
             "properties": {
                 "project_id": {
                     "type": "string",
-                    "description": "The GCP project ID",
+                    "description": "The GCP project ID from list_projects. Use the 'project_id' field, NOT the display name.",
                 },
             },
             "required": ["project_id"],
@@ -87,7 +94,7 @@ TOOLS_SCHEMA = [
             "properties": {
                 "project_id": {
                     "type": "string",
-                    "description": "The GCP project ID",
+                    "description": "The GCP project ID from list_projects. Use the 'project_id' field, NOT the display name.",
                 },
                 "user_email": {
                     "type": "string",
@@ -169,46 +176,132 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "name": "list_resources",
+        "description": (
+            "List all running GCP resources in a project — compute instances, persistent disks, "
+            "and Cloud Storage buckets. Use this to show what infrastructure is running and "
+            "identify potential candidates for cost optimisation."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "GCP project ID (use 'project_id' from list_projects, never the display name).",
+                },
+            },
+            "required": ["project_id"],
+        },
+    },
+    {
+        "name": "get_cost_recommendations",
+        "description": (
+            "Fetch GCP Recommender API suggestions for idle or unused resources in a project. "
+            "Returns resources flagged as wasteful with estimated monthly savings. "
+            "Use this to advise the admin on cost optimisation opportunities."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "GCP project ID.",
+                },
+            },
+            "required": ["project_id"],
+        },
+    },
+    {
+        "name": "get_termination_requests",
+        "description": (
+            "List all pending resource termination requests awaiting admin approval. "
+            "Use this to review what has been flagged for termination before deciding whether to approve."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "name": "challenge_termination",
+        "description": (
+            "Register a challenge question for a termination request. "
+            "You MUST call this every time you ask the admin a probing question about a termination. "
+            "approve_termination is BLOCKED until challenge_termination has been called at least "
+            f"{REQUIRED_CHALLENGES} times for that request_id. "
+            "There is no way to bypass this — it is enforced server-side."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request_id": {
+                    "type": "string",
+                    "description": "The termination request ID being challenged.",
+                },
+                "question": {
+                    "type": "string",
+                    "description": "The specific challenge question you are asking the admin.",
+                },
+            },
+            "required": ["request_id", "question"],
+        },
+    },
+    {
+        "name": "approve_termination",
+        "description": (
+            "Approve and execute a pending resource termination. "
+            "BLOCKED server-side until challenge_termination has been called at least "
+            f"{REQUIRED_CHALLENGES} times for this request_id. "
+            "Do not attempt to call this before completing the required challenges."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request_id": {
+                    "type": "string",
+                    "description": "The termination request ID from get_termination_requests.",
+                },
+                "agent_justification": {
+                    "type": "string",
+                    "description": "Your summary of why you are satisfied the termination is safe.",
+                },
+            },
+            "required": ["request_id", "agent_justification"],
+        },
+    },
 ]
 
 
+_TYPE_NAMES = {
+    "string": "STRING", "integer": "INTEGER", "number": "NUMBER",
+    "boolean": "BOOLEAN", "array": "ARRAY", "object": "OBJECT",
+}
+
+
 def _build_gemini_tools() -> list:
-    """Convert our schema list into Gemini FunctionDeclaration objects (new SDK)."""
+    """Build Gemini tool declarations using plain dicts — avoids Schema constructor variance across SDK versions."""
+
+    def _prop(p: dict) -> dict:
+        return {
+            "type": _TYPE_NAMES.get(p.get("type", "string"), "STRING"),
+            "description": p.get("description", ""),
+        }
+
     declarations = []
     for t in TOOLS_SCHEMA:
-        declarations.append(
-            types.FunctionDeclaration(
-                name=t["name"],
-                description=t["description"],
-                parameters=types.Schema(
-                    type=types.Type.OBJECT,
-                    properties={
-                        k: _convert_param(v)
-                        for k, v in t.get("parameters", {})
-                        .get("properties", {})
-                        .items()
-                    },
-                    required=t.get("parameters", {}).get("required", []),
-                ),
-            )
-        )
-    return [types.Tool(function_declarations=declarations)]
+        params = t.get("parameters", {})
+        props  = params.get("properties", {})
+        fd: dict = {"name": t["name"], "description": t["description"]}
+        if props:
+            fd["parameters"] = {
+                "type": "OBJECT",
+                "properties": {k: _prop(v) for k, v in props.items()},
+                "required": params.get("required", []),
+            }
+        declarations.append(types.FunctionDeclaration(**fd))
 
-
-def _convert_param(param: dict) -> types.Schema:
-    """Recursively convert a JSON-schema param to a Gemini Schema (new SDK)."""
-    type_map = {
-        "string": types.Type.STRING,
-        "integer": types.Type.INTEGER,
-        "number": types.Type.NUMBER,
-        "boolean": types.Type.BOOLEAN,
-        "array": types.Type.ARRAY,
-        "object": types.Type.OBJECT,
-    }
-    return types.Schema(
-        type=type_map.get(param.get("type", "string"), types.Type.STRING),
-        description=param.get("description", ""),
-    )
+    return [types.Tool(function_declarations=declarations)]  # type: ignore[call-arg]
 
 
 # ── Step types yielded to the UI ──────────────────────────────────────────────
@@ -237,7 +330,10 @@ def _execute_tool(
 
     if tool_name == "list_projects":
         projects = provider.list_projects()
-        return {"projects": [{"id": p.id, "name": p.name} for p in projects]}, None
+        return {
+            "projects": [{"project_id": p.id, "display_name": p.name} for p in projects],
+            "instruction": "Always use 'project_id' (never 'display_name') for all subsequent tool calls.",
+        }, None
 
     elif tool_name == "check_user_access":
         roles = provider.get_user_roles(
@@ -400,6 +496,153 @@ def _execute_tool(
             }
         return {"safe_roles": roles, "count": len(roles)}, None
 
+    elif tool_name == "list_resources":
+        project_id = tool_input["project_id"]
+        try:
+            resources = provider.list_resources(project_id)
+            return {
+                "project": project_id,
+                "resources": [
+                    {
+                        "id": r.id,
+                        "name": r.name,
+                        "type": r.resource_type,
+                        "status": r.status,
+                        "zone": r.zone or r.region or "",
+                        "machine_type": r.machine_type or "",
+                        "size_gb": r.size_gb,
+                        "created_at": r.created_at or "",
+                    }
+                    for r in resources
+                ],
+                "count": len(resources),
+            }, None
+        except NotImplementedError:
+            return {"error": "Resource listing not supported in current provider mode."}, None
+
+    elif tool_name == "get_cost_recommendations":
+        project_id = tool_input["project_id"]
+        try:
+            recs = provider.get_recommendations(project_id)
+            if not recs:
+                return {
+                    "project": project_id,
+                    "recommendations": [],
+                    "message": "No active recommendations found. All resources appear healthy.",
+                }, None
+            total_savings = sum(r.estimated_monthly_savings_usd or 0 for r in recs)
+            return {
+                "project": project_id,
+                "recommendations": [
+                    {
+                        "id": r.id,
+                        "resource_name": r.resource_name,
+                        "resource_type": r.resource_type,
+                        "description": r.description,
+                        "priority": r.priority,
+                        "zone": r.zone or "",
+                        "estimated_monthly_savings_usd": r.estimated_monthly_savings_usd,
+                        "action": r.recommender_subtype or "",
+                    }
+                    for r in recs
+                ],
+                "total_estimated_monthly_savings_usd": round(total_savings, 2),
+                "count": len(recs),
+            }, None
+        except NotImplementedError:
+            return {"error": "Cost recommendations not supported in current provider mode."}, None
+
+    elif tool_name == "get_termination_requests":
+        pending = storage.get_pending_terminations()
+        return {
+            "pending_requests": pending,
+            "count": len(pending),
+            "message": (
+                "These resources are queued for termination and awaiting approval. "
+                "Challenge the admin's justification carefully before approving any."
+            ) if pending else "No pending termination requests.",
+        }, None
+
+    elif tool_name == "challenge_termination":
+        request_id = tool_input["request_id"]
+        question = tool_input["question"]
+        count = _termination_challenges.get(request_id, 0) + 1
+        _termination_challenges[request_id] = count
+        remaining = max(0, REQUIRED_CHALLENGES - count)
+        logger.info(f"[challenge_termination] request={request_id} round={count}/{REQUIRED_CHALLENGES}")
+        return {
+            "challenge_registered": True,
+            "request_id": request_id,
+            "question_asked": question,
+            "challenges_completed": count,
+            "challenges_required": REQUIRED_CHALLENGES,
+            "challenges_remaining": remaining,
+            "ready_to_approve": remaining == 0,
+            "instruction": (
+                "Present this question directly to the admin and wait for their answer. "
+                + (f"You need {remaining} more challenge(s) before you can approve."
+                   if remaining > 0 else "Minimum challenges met. You may approve if satisfied with all answers.")
+            ),
+        }, None
+
+    elif tool_name == "approve_termination":
+        request_id = tool_input["request_id"]
+        agent_justification = tool_input["agent_justification"]
+
+        # ── Hard server-side guardrail: block if not enough challenges ────────
+        challenges_given = _termination_challenges.get(request_id, 0)
+        if challenges_given < REQUIRED_CHALLENGES:
+            logger.warning(
+                f"[approve_termination] BLOCKED request={request_id} "
+                f"challenges={challenges_given}/{REQUIRED_CHALLENGES}"
+            )
+            return {
+                "blocked": True,
+                "reason": (
+                    f"Approval blocked. You have only challenged the admin {challenges_given} time(s). "
+                    f"You must call challenge_termination at least {REQUIRED_CHALLENGES} times "
+                    f"before approving. Ask {REQUIRED_CHALLENGES - challenges_given} more question(s)."
+                ),
+                "challenges_completed": challenges_given,
+                "challenges_required": REQUIRED_CHALLENGES,
+            }, AgentStep(
+                type="guardrail",
+                tool_name=tool_name,
+                tool_input=tool_input,
+                message=f"🚫 GUARDRAIL: approve_termination blocked — only {challenges_given}/{REQUIRED_CHALLENGES} challenges completed for request {request_id}.",
+                is_safe=False,
+            )
+
+        resolved = storage.resolve_termination(
+            request_id, "approved", requester_email, agent_justification
+        )
+        if not resolved:
+            return {"error": f"Termination request '{request_id}' not found or already resolved."}, None
+
+        try:
+            result = provider.terminate_resource(
+                project_id=resolved["project_id"],
+                resource_type=resolved["resource_type"],
+                resource_id=resolved["resource_id"],
+                zone=resolved.get("zone") or None,
+            )
+            storage.audit(
+                actor=requester_email,
+                action="agent_terminate_resource",
+                target_user="",
+                project=resolved["project_id"],
+                role=resolved["resource_type"],
+                outcome="success" if result.success else "failed",
+                detail=f"{resolved['resource_id']}: {agent_justification}",
+            )
+            return {
+                "success": result.success,
+                "resource_id": resolved["resource_id"],
+                "message": result.message,
+            }, None
+        except Exception as e:
+            return {"error": str(e)}, None
+
     else:
         return {"error": f"Unknown tool: {tool_name}"}, None
 
@@ -442,13 +685,22 @@ def run_agent(
         for msg in conversation_history
     ]
 
+    # Inject the authenticated user's email so the agent never asks for it
+    session_system = (
+        SYSTEM_PROMPT +
+        f"\n\nSESSION CONTEXT:\n"
+        f"- Authenticated user email: {requester_email}\n"
+        f"- NEVER ask the user for their email — it is already known: {requester_email}\n"
+        f"- Always use {requester_email} when calling check_user_access, grant_iam_role, revoke_iam_role, etc."
+    )
+
     chat = gemini_client.chats.create(
         model=MODEL_NAME,
         config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
+            system_instruction=session_system,
             tools=_build_gemini_tools(),
             temperature=0.2,  # Low temp for consistent, safe IAM decisions
-            max_output_tokens=2048,
+            max_output_tokens=8192,
         ),
         history=gemini_history,
     )
@@ -459,19 +711,29 @@ def run_agent(
     response = chat.send_message(user_message)
 
     for _ in range(max_rounds):
+        # Guard: candidate or content may be None (safety filter / empty turn)
+        candidate = response.candidates[0] if response.candidates else None
+        parts = (candidate.content.parts if candidate and candidate.content and candidate.content.parts else [])
+
         # Collect all function calls in this response
         fn_calls = []
-        for part in response.candidates[0].content.parts:
+        for part in parts:
             if part.function_call and part.function_call.name:
                 fn_calls.append(part.function_call)
 
         # No function calls → agent is done, extract text
         if not fn_calls:
             final_text = ""
-            for part in response.candidates[0].content.parts:
+            for part in parts:
                 if hasattr(part, "text") and part.text:
                     final_text += part.text
-            yield AgentStep(type="done", message=final_text or "Done.")
+            # Fallback: SDK convenience property when parts is empty/None
+            if not final_text:
+                try:
+                    final_text = response.text or ""
+                except Exception:
+                    pass
+            yield AgentStep(type="done", message=final_text or "I've completed the requested action.")
             return
 
         # Execute each function call and collect results
@@ -510,11 +772,15 @@ def run_agent(
                 tool_result=result,
             )
 
+            # Truncate large results to avoid hitting context limits
+            result_str = json.dumps(result)
+            if len(result_str) > 6000:
+                result_str = result_str[:6000] + "... [truncated for brevity]"
             tool_response_parts.append(
                 types.Part(
                     function_response=types.FunctionResponse(
                         name=tool_name,
-                        response={"result": json.dumps(result)},
+                        response={"result": result_str},
                     )
                 )
             )

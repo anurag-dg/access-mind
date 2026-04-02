@@ -1,0 +1,26 @@
+[
+  {
+    "id": "D5FA35D2",
+    "status": "approved",
+    "requester": "anuraggcp101@gmail.com",
+    "project_id": "cerberus-491806",
+    "requested_role": "roles/storage.admin",
+    "justification": "I want to manage like delete and create storage components.",
+    "agent_reasoning": "The user requested \"admin access\" for storage, which is a highly privileged role. While they clarified they want to \"manage like delete and create storage components\", this still implies broad control over storage resources, potentially including bucket management, which would require a role like `roles/storage.admin`. This role is not on the safe list and requires escalation.",
+    "created_at": "2026-04-02T17:26:44.607066+00:00",
+    "resolved_at": "2026-04-02T17:27:57.384282+00:00",
+    "resolved_by": "admin@startup.io"
+  },
+  {
+    "id": "2421934B",
+    "status": "denied",
+    "requester": "anuraggcp101@gmail.com",
+    "project_id": "cerberus",
+    "requested_role": "admin",
+    "justification": "user wants admin access to bigquery",
+    "agent_reasoning": "Admin access to BigQuery is a high-privilege role that requires manual approval from a cloud administrator.",
+    "created_at": "2026-04-02T18:01:11.163887+00:00",
+    "resolved_at": "2026-04-02T18:02:30.088316+00:00",
+    "resolved_by": "anuraggcp101@gmail.com"
+  }
+]
