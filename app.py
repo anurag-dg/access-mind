@@ -601,10 +601,8 @@ with tab_mcp:
     # Architecture note
     st.markdown("#### Architecture")
     st.info(
-        "**Cloud-agnostic by design.** The MCP server wraps the same `CloudProvider` "
-        "abstract interface used by the Gemini agent. Swapping GCP for AWS or Azure "
-        "requires only a new provider implementation — the MCP tool definitions and "
-        "the agent reasoning logic stay identical.",
+        "The MCP server wraps the same `CloudProvider` abstract interface used by the Gemini agent. "
+        "The MCP tool definitions and the agent reasoning logic are provider-independent.",
         icon="🏗️",
     )
 

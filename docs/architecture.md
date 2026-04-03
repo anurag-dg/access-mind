@@ -115,7 +115,7 @@ mock.py     In-memory mock — 3 VMs, 2 disks, 2 buckets,
             3 cost recommendations, terminated-set tracking
 ```
 
-Swapping to AWS/Azure requires only a new provider class — no changes to the agent, MCP server, or API.
+The provider pattern cleanly separates GCP API calls from the agent logic.
 
 ### `frontend/index.html` — Single-page app
 - Zero dependencies, pure HTML/CSS/JS

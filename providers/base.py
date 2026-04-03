@@ -1,6 +1,6 @@
 """
 Access Mind - Abstract Cloud Provider Interface
-Swap GCPProvider for AWSProvider or AzureProvider with zero agent changes.
+Defines the provider contract used by GCPProvider and MockProvider.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

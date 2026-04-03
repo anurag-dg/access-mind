@@ -24,7 +24,7 @@ from core import storage
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-2.5-flash"
 
 # Server-side challenge tracker — maps request_id → number of challenges issued
 # approve_termination is blocked until at least REQUIRED_CHALLENGES are on record
@@ -275,8 +275,12 @@ TOOLS_SCHEMA = [
 
 
 _TYPE_NAMES = {
-    "string": "STRING", "integer": "INTEGER", "number": "NUMBER",
-    "boolean": "BOOLEAN", "array": "ARRAY", "object": "OBJECT",
+    "string": "STRING",
+    "integer": "INTEGER",
+    "number": "NUMBER",
+    "boolean": "BOOLEAN",
+    "array": "ARRAY",
+    "object": "OBJECT",
 }
 
 
@@ -292,7 +296,7 @@ def _build_gemini_tools() -> list:
     declarations = []
     for t in TOOLS_SCHEMA:
         params = t.get("parameters", {})
-        props  = params.get("properties", {})
+        props = params.get("properties", {})
         fd: dict = {"name": t["name"], "description": t["description"]}
         if props:
             fd["parameters"] = {
@@ -332,7 +336,9 @@ def _execute_tool(
     if tool_name == "list_projects":
         projects = provider.list_projects()
         return {
-            "projects": [{"project_id": p.id, "display_name": p.name} for p in projects],
+            "projects": [
+                {"project_id": p.id, "display_name": p.name} for p in projects
+            ],
             "instruction": "Always use 'project_id' (never 'display_name') for all subsequent tool calls.",
         }, None
 
@@ -519,7 +525,9 @@ def _execute_tool(
                 "count": len(resources),
             }, None
         except NotImplementedError:
-            return {"error": "Resource listing not supported in current provider mode."}, None
+            return {
+                "error": "Resource listing not supported in current provider mode."
+            }, None
 
     elif tool_name == "get_cost_recommendations":
         project_id = tool_input["project_id"]
@@ -551,7 +559,9 @@ def _execute_tool(
                 "count": len(recs),
             }, None
         except NotImplementedError:
-            return {"error": "Cost recommendations not supported in current provider mode."}, None
+            return {
+                "error": "Cost recommendations not supported in current provider mode."
+            }, None
 
     elif tool_name == "get_termination_requests":
         pending = storage.get_pending_terminations()
@@ -559,9 +569,13 @@ def _execute_tool(
             "pending_requests": pending,
             "count": len(pending),
             "message": (
-                "These resources are queued for termination and awaiting approval. "
-                "Challenge the admin's justification carefully before approving any."
-            ) if pending else "No pending termination requests.",
+                (
+                    "These resources are queued for termination and awaiting approval. "
+                    "Challenge the admin's justification carefully before approving any."
+                )
+                if pending
+                else "No pending termination requests."
+            ),
         }, None
 
     elif tool_name == "challenge_termination":
@@ -570,7 +584,9 @@ def _execute_tool(
         count = _termination_challenges.get(request_id, 0) + 1
         _termination_challenges[request_id] = count
         remaining = max(0, REQUIRED_CHALLENGES - count)
-        logger.info(f"[challenge_termination] request={request_id} round={count}/{REQUIRED_CHALLENGES}")
+        logger.info(
+            f"[challenge_termination] request={request_id} round={count}/{REQUIRED_CHALLENGES}"
+        )
         return {
             "challenge_registered": True,
             "request_id": request_id,
@@ -581,8 +597,11 @@ def _execute_tool(
             "ready_to_approve": remaining == 0,
             "instruction": (
                 "Present this question directly to the admin and wait for their answer. "
-                + (f"You need {remaining} more challenge(s) before you can approve."
-                   if remaining > 0 else "Minimum challenges met. You may approve if satisfied with all answers.")
+                + (
+                    f"You need {remaining} more challenge(s) before you can approve."
+                    if remaining > 0
+                    else "Minimum challenges met. You may approve if satisfied with all answers."
+                )
             ),
         }, None
 
@@ -618,7 +637,9 @@ def _execute_tool(
             request_id, "approved", requester_email, agent_justification
         )
         if not resolved:
-            return {"error": f"Termination request '{request_id}' not found or already resolved."}, None
+            return {
+                "error": f"Termination request '{request_id}' not found or already resolved."
+            }, None
 
         try:
             result = provider.terminate_resource(
@@ -688,8 +709,7 @@ def run_agent(
 
     # Inject the authenticated user's email so the agent never asks for it
     session_system = (
-        SYSTEM_PROMPT +
-        f"\n\nSESSION CONTEXT:\n"
+        SYSTEM_PROMPT + f"\n\nSESSION CONTEXT:\n"
         f"- Authenticated user email: {requester_email}\n"
         f"- NEVER ask the user for their email — it is already known: {requester_email}\n"
         f"- Always use {requester_email} when calling check_user_access, grant_iam_role, revoke_iam_role, etc."
@@ -714,7 +734,11 @@ def run_agent(
     for _ in range(max_rounds):
         # Guard: candidate or content may be None (safety filter / empty turn)
         candidate = response.candidates[0] if response.candidates else None
-        parts = (candidate.content.parts if candidate and candidate.content and candidate.content.parts else [])
+        parts = (
+            candidate.content.parts
+            if candidate and candidate.content and candidate.content.parts
+            else []
+        )
 
         # Collect all function calls in this response
         fn_calls = []
@@ -734,7 +758,20 @@ def run_agent(
                     final_text = response.text or ""
                 except Exception:
                     pass
-            yield AgentStep(type="done", message=final_text or "I've completed the requested action.")
+            # If still empty, nudge the model to produce a summary instead of
+            # showing the generic fallback string to the user
+            if not final_text:
+                try:
+                    nudge = chat.send_message(
+                        "Please summarise what you just did and the outcome for the user."
+                    )
+                    final_text = nudge.text or ""
+                except Exception:
+                    pass
+            yield AgentStep(
+                type="done",
+                message=final_text or "Done. The action completed successfully.",
+            )
             return
 
         # Execute each function call and collect results

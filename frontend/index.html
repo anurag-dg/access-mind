@@ -1681,11 +1681,11 @@
 
       <div class="form-group">
         <label>Email Address</label>
-        <input type="email" id="login-email" placeholder="you@company.com" value="anuraggcp101@gmail.com" />
+        <input type="email" id="login-email" placeholder="you@company.com" value="danush1503@gmail.com" />
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-          <button type="button" onclick="quickFill('anuraggcp101@gmail.com','employee')"
+          <button type="button" onclick="quickFill('danush1503@gmail.com','employee')"
             style="font-size:11px;padding:3px 8px;background:var(--blue-dim);border:1px solid var(--border2);border-radius:6px;color:var(--blue);cursor:pointer;">
-            👤 anuraggcp101 (Employee)
+            👤 danush1503 (Employee)
           </button>
           <button type="button" onclick="quickFill('anuraggcp101@gmail.com','admin')"
             style="font-size:11px;padding:3px 8px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:6px;color:var(--amber);cursor:pointer;">
@@ -2161,7 +2161,7 @@
       }
 
       if (finalText) {
-        html += `<div class="msg-bubble">${escHtml(finalText)}</div>`;
+        html += `<div class="msg-bubble">${mdToHtml(finalText)}</div>`;
       } else {
         html += `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
       }
@@ -2674,6 +2674,42 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    function mdToHtml(str) {
+      if (str === null || str === undefined) return '';
+      let s = String(str);
+      // Escape HTML first to prevent XSS
+      s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Code blocks (triple backtick) — preserve before inline processing
+      s = s.replace(/```([^`]*?)```/gs, (_, code) =>
+        `<pre style="background:var(--surface2);padding:8px 12px;border-radius:6px;overflow-x:auto;font-size:12px;margin:6px 0;">${code.trim()}</pre>`);
+      // Inline code
+      s = s.replace(/`([^`]+?)`/g, '<code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:12px;">$1</code>');
+      // Bold
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Italic (lone asterisk or underscore, not part of bullet)
+      s = s.replace(/(?<!\*)\*(?!\*|\s)(.+?)(?<!\s)\*(?!\*)/g, '<em>$1</em>');
+      // Bullet lists — collect consecutive bullet lines into <ul>
+      s = s.replace(/((?:^[ \t]*[-*][ \t].+\n?)+)/gm, match => {
+        const items = match.trim().split('\n').map(line =>
+          `<li>${line.replace(/^[ \t]*[-*][ \t]/, '').trim()}</li>`).join('');
+        return `<ul style="margin:4px 0 4px 18px;padding:0;">${items}</ul>`;
+      });
+      // Numbered lists
+      s = s.replace(/((?:^[ \t]*\d+\.[ \t].+\n?)+)/gm, match => {
+        const items = match.trim().split('\n').map(line =>
+          `<li>${line.replace(/^[ \t]*\d+\.[ \t]/, '').trim()}</li>`).join('');
+        return `<ol style="margin:4px 0 4px 18px;padding:0;">${items}</ol>`;
+      });
+      // Headings
+      s = s.replace(/^### (.+)$/gm, '<strong style="font-size:13px;">$1</strong>');
+      s = s.replace(/^## (.+)$/gm, '<strong style="font-size:14px;">$1</strong>');
+      s = s.replace(/^# (.+)$/gm, '<strong style="font-size:15px;">$1</strong>');
+      // Line breaks — double newline = paragraph gap, single = <br>
+      s = s.replace(/\n\n+/g, '<br><br>');
+      s = s.replace(/\n/g, '<br>');
+      return s;
     }
 
     function toast(msg, type = 'success') {

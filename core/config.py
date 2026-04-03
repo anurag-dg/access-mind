@@ -1,6 +1,6 @@
 """
 Access Mind - Role Definitions & Guardrails
-Cloud-agnostic role mapping with GCP as the concrete provider.
+GCP IAM role policy and agent system prompt.
 """
 
 # ── Roles the agent can grant autonomously (least privilege) ─────────────────
@@ -99,9 +99,6 @@ WORKFLOW FOR ACCESS REQUESTS:
 
 ROLE MAPPING HINTS:
 {ROLE_HINTS}
-
-IMPORTANT: You are cloud-agnostic in your reasoning. The specific API calls are GCP today,
-but your least-privilege logic applies equally to AWS IAM, Azure RBAC, or any cloud provider.
 
 Always be conversational, helpful, and explain things in plain English — users are developers,
 not IAM experts. Never use jargon without explanation.

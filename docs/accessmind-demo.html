@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AccessMind — Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b10;
+    --surface: #0e1420;
+    --surface2: #141c2a;
+    --surface3: #1a2336;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.13);
+    --text: #e8edf5;
+    --muted: #6b7a96;
+    --dim: #2e3a4e;
+    --teal: #00e5a0;
+    --teal-dim: rgba(0,229,160,0.1);
+    --teal-border: rgba(0,229,160,0.25);
+    --blue: #4d9eff;
+    --blue-dim: rgba(77,158,255,0.1);
+    --purple: #a78bfa;
+    --red: #ff6b6b;
+    --red-dim: rgba(255,107,107,0.1);
+    --amber: #fbbf24;
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.08);
+    --coral: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 50% 40% at 5% 0%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 95% 100%, rgba(77,158,255,0.04) 0%, transparent 60%);
+  }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 20px;
+    overflow-y: auto;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--teal), #00b37e);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-mark svg { width: 18px; height: 18px; }
+  .brand-name { font-size: 16px; font-weight: 800; color: var(--text); }
+  .brand-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+  .sidebar-section { }
+  .sidebar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  /* Identity card */
+  .identity {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .identity-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .identity-role {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    margin-top: 1px;
+  }
+
+  /* Scenario list */
+  .scenario-btn {
+    width: 100%; text-align: left;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    transition: border-color 0.15s, background 0.15s;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+  .scenario-btn:hover { border-color: var(--border-bright); background: var(--surface3); }
+  .scenario-btn.active { border-color: var(--teal-border); background: var(--teal-dim); }
+  .scenario-btn-label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .scenario-btn-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .scenario-tag {
+    display: inline-block; margin-top: 5px;
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    padding: 2px 7px; border-radius: 100px;
+    border: 1px solid;
+  }
+
+  /* Status pills */
+  .status-row { display: flex; flex-direction: column; gap: 6px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px rgba(74,222,128,0.6); }
+  .dot-amber { background: var(--amber); }
+  .dot-muted { background: var(--dim); }
+
+  /* ── Main ── */
+  .main {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .topbar-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .replay-btn {
+    background: var(--teal-dim); border: 1px solid var(--teal-border);
+    color: var(--teal); border-radius: 8px; padding: 7px 14px;
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .replay-btn:hover { background: rgba(0,229,160,0.18); }
+  .replay-btn svg { width: 13px; height: 13px; }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1; overflow-y: auto;
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  /* Messages */
+  .msg { display: flex; gap: 12px; align-items: flex-start; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .msg-body { max-width: 72%; display: flex; flex-direction: column; gap: 6px; }
+  .msg.user .msg-body { align-items: flex-end; }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 13px; line-height: 1.6;
+  }
+  .bubble.user {
+    background: var(--blue-dim);
+    border: 1px solid rgba(77,158,255,0.2);
+    color: var(--text);
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.agent {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble strong { color: var(--teal); font-weight: 600; }
+  .bubble code {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 4px;
+    color: var(--blue);
+  }
+
+  /* Reasoning block (tool calls) */
+  .reasoning {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    max-width: 72%;
+  }
+  .reasoning-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .reasoning-header svg { width: 12px; height: 12px; transition: transform 0.2s; }
+  .reasoning-header.open svg { transform: rotate(90deg); }
+  .reasoning-steps { display: none; }
+  .reasoning-steps.open { display: block; }
+
+  .step {
+    display: flex; gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-content { flex: 1; }
+  .step-name { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+  .step-detail { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+  .step-result { font-family: 'DM Mono', monospace; font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  /* step types */
+  .step.call .step-icon { background: var(--blue-dim); }
+  .step.call .step-name { color: var(--blue); }
+  .step.result .step-icon { background: var(--green-dim); }
+  .step.result .step-name { color: var(--green); }
+  .step.guardrail .step-icon { background: var(--red-dim); }
+  .step.guardrail .step-name { color: var(--red); }
+  .step.escalate .step-icon { background: rgba(251,191,36,0.1); }
+  .step.escalate .step-name { color: var(--amber); }
+
+  /* Outcome chips */
+  .outcome-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .chip {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 3px 9px; border-radius: 100px; border: 1px solid;
+  }
+  .chip-green { background: var(--green-dim); border-color: rgba(74,222,128,0.3); color: var(--green); }
+  .chip-amber { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3); color: var(--amber); }
+  .chip-red   { background: var(--red-dim); border-color: rgba(255,107,107,0.3); color: var(--red); }
+  .chip-blue  { background: var(--blue-dim); border-color: rgba(77,158,255,0.3); color: var(--blue); }
+
+  /* Typing indicator */
+  .typing { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .input-inner {
+    display: flex; gap: 10px; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border-bright);
+    border-radius: 12px; padding: 10px 14px;
+  }
+  .input-inner input {
+    flex: 1; background: none; border: none; outline: none;
+    font-family: 'Syne', sans-serif; font-size: 13px; color: var(--text);
+  }
+  .input-inner input::placeholder { color: var(--muted); }
+  .send-btn {
+    background: var(--teal); border: none; border-radius: 8px;
+    width: 32px; height: 32px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn svg { width: 14px; height: 14px; }
+
+  /* Animations */
+  .msg, .reasoning { opacity: 0; transform: translateY(8px); }
+  .msg.show, .reasoning.show {
+    animation: slideIn 0.35s ease forwards;
+  }
+  @keyframes slideIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 18 18" fill="none">
+          <path d="M9 2l1.5 3 3.3.5-2.4 2.3.6 3.2L9 9.5l-3 1.5.6-3.2L4.2 5.5l3.3-.5z" fill="white"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">AccessMind</div>
+        <div class="brand-sub">agentic IAM agent</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Logged in as</div>
+      <div class="identity" id="identity-card">
+        <div class="avatar" style="background:rgba(77,158,255,0.2);color:#4d9eff">AK</div>
+        <div>
+          <div class="identity-name" id="identity-name">Arjun K.</div>
+          <div class="identity-role" id="identity-role" style="color:var(--blue)">ML Engineer</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Demo scenarios</div>
+
+      <button class="scenario-btn active" onclick="loadScenario('etl')" id="btn-etl">
+        <div class="scenario-btn-label">ETL pipeline POC</div>
+        <div class="scenario-btn-sub">BigQuery + Storage + Dataflow + Cloud SQL</div>
+        <span class="scenario-tag" style="background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.3);color:#4ade80">auto-grant</span>
+      </button>
+
+      <button class="scenario-btn" onclick="loadScenario('rag')" id="btn-rag">
+        <div class="scenario-btn-label">RAG pipeline POC</div>
+        <div class="scenario-btn-sub">Vertex AI + Storage + Pub/Sub</div>
+        <span class="scenario-tag" style="background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.3);color:#4ade80">auto-grant</span>
+      </button>
+
+      <button class="scenario-btn" onclick="loadScenario('infra')" id="btn-infra">
+        <div class="scenario-btn-label">Infra setup request</div>
+        <div class="scenario-btn-sub">Owner access + Compute admin</div>
+        <span class="scenario-tag" style="background:rgba(255,107,107,0.08);border-color:rgba(255,107,107,0.3);color:#ff6b6b">escalates</span>
+      </button>
+
+      <button class="scenario-btn" onclick="loadScenario('mixed')" id="btn-mixed">
+        <div class="scenario-btn-label">Mixed request</div>
+        <div class="scenario-btn-sub">Safe roles + admin ask in one message</div>
+        <span class="scenario-tag" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.3);color:#fbbf24">split decision</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto">
+      <div class="sidebar-label">System status</div>
+      <div class="status-row">
+        <div class="status-pill"><span class="dot dot-green"></span>Gemini 2.5 Flash Lite</div>
+        <div class="status-pill"><span class="dot dot-green"></span>GCP connected</div>
+        <div class="status-pill"><span class="dot dot-green"></span>MCP server running</div>
+        <div class="status-pill"><span class="dot dot-amber"></span>Project: ml-poc-2024</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">ETL Pipeline POC — Access Request</div>
+        <div class="topbar-sub" id="topbar-sub">Project: ml-poc-2024 · 4 tool calls · 3 roles granted</div>
+      </div>
+      <button class="replay-btn" onclick="replayScenario()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+        </svg>
+        Replay
+      </button>
+    </div>
+
+    <div class="chat-area" id="chat-area"></div>
+
+    <div class="input-bar">
+      <div class="input-inner">
+        <input type="text" placeholder="Type a message or click a scenario to replay..." id="chat-input" readonly>
+        <button class="send-btn">
+          <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCENARIOS = {
+
+  etl: {
+    title: "ETL Pipeline POC — Access Request",
+    sub: "Project: ml-poc-2024 · 6 tool calls · 4 roles granted",
+    user: { name: "Arjun K.", role: "ML Engineer", initials: "AK", color: "#4d9eff", bg: "rgba(77,158,255,0.2)" },
+    turns: [
+      {
+        user: "Hi! I'm setting up a quick ETL proof-of-concept. I need to pull raw data from our Cloud Storage bucket, run some transforms in Dataflow, write results to BigQuery, and also read from a Cloud SQL staging database. Can you get me the right access on ml-poc-2024?",
+        reasoning: [
+          { type:"call", tool:"list_projects()", detail:"Checking available projects" },
+          { type:"result", tool:"list_projects", detail:"Found: ml-poc-2024, dev-sandbox, data-pipeline-stg" },
+          { type:"call", tool:"check_user_access(ml-poc-2024, arjun@startup.io)", detail:"Checking existing permissions" },
+          { type:"result", tool:"check_user_access", detail:"No existing roles on this project" },
+          { type:"call", tool:"grant_iam_role(roles/storage.objectViewer)", detail:"ETL source data read access" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/storage.objectViewer" },
+          { type:"call", tool:"grant_iam_role(roles/dataflow.developer)", detail:"Run Dataflow transform jobs" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/dataflow.developer" },
+          { type:"call", tool:"grant_iam_role(roles/bigquery.dataEditor)", detail:"Write transform results to BQ" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/bigquery.dataEditor" },
+          { type:"call", tool:"grant_iam_role(roles/bigquery.jobUser)", detail:"Run BQ jobs and queries" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/bigquery.jobUser" },
+          { type:"call", tool:"grant_iam_role(roles/cloudsql.client)", detail:"Connect to Cloud SQL staging DB" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/cloudsql.client" },
+        ],
+        agent: "You're all set for your ETL POC on <strong>ml-poc-2024</strong>! Here's exactly what I granted:\n\n<code>roles/storage.objectViewer</code> — read raw data from Cloud Storage\n<code>roles/dataflow.developer</code> — create and run Dataflow transform jobs\n<code>roles/bigquery.dataEditor</code> + <code>roles/bigquery.jobUser</code> — write results and run BQ queries\n<code>roles/cloudsql.client</code> — connect to the Cloud SQL staging database\n\nAll 5 roles are least-privilege — you can read and write what you need but have no admin access to any resource. Everything is logged in the audit trail.",
+        chips: ["chip-green:storage.objectViewer", "chip-green:dataflow.developer", "chip-green:bigquery.dataEditor", "chip-green:bigquery.jobUser", "chip-green:cloudsql.client"]
+      }
+    ]
+  },
+
+  rag: {
+    title: "RAG Pipeline POC — Access Request",
+    sub: "Project: ml-poc-2024 · 5 tool calls · 4 roles granted",
+    user: { name: "Priya S.", role: "AI Engineer", initials: "PS", color: "#a78bfa", bg: "rgba(167,139,250,0.2)" },
+    turns: [
+      {
+        user: "Hey, I'm building a RAG pipeline for our internal knowledge base. I'll need to read documents from Cloud Storage, call the Vertex AI embedding and generation APIs, subscribe to a Pub/Sub topic for document update events, and access secrets for the API keys. All on ml-poc-2024 please.",
+        reasoning: [
+          { type:"call", tool:"check_user_access(ml-poc-2024, priya@startup.io)", detail:"Checking existing permissions" },
+          { type:"result", tool:"check_user_access", detail:"Has: roles/logging.viewer (existing)" },
+          { type:"call", tool:"grant_iam_role(roles/storage.objectViewer)", detail:"Read source documents for indexing" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/storage.objectViewer" },
+          { type:"call", tool:"grant_iam_role(roles/aiplatform.user)", detail:"Call Vertex AI embedding + generation APIs" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/aiplatform.user" },
+          { type:"call", tool:"grant_iam_role(roles/pubsub.subscriber)", detail:"Receive document update events" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/pubsub.subscriber" },
+          { type:"call", tool:"grant_iam_role(roles/secretmanager.secretAccessor)", detail:"Read API keys from Secret Manager" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/secretmanager.secretAccessor" },
+        ],
+        agent: "Your RAG pipeline access is ready on <strong>ml-poc-2024</strong>! I noticed you already had <code>roles/logging.viewer</code> so I kept that and added:\n\n<code>roles/storage.objectViewer</code> — read source documents for embedding\n<code>roles/aiplatform.user</code> — call Vertex AI for embeddings and generation\n<code>roles/pubsub.subscriber</code> — subscribe to document update events\n<code>roles/secretmanager.secretAccessor</code> — read-only access to secrets\n\nAll read-only where possible — you can't modify documents or publish to Pub/Sub, which keeps your POC sandboxed.",
+        chips: ["chip-blue:existing: logging.viewer", "chip-green:storage.objectViewer", "chip-green:aiplatform.user", "chip-green:pubsub.subscriber", "chip-green:secretmanager.secretAccessor"]
+      }
+    ]
+  },
+
+  infra: {
+    title: "Infra Setup — High Privilege Request",
+    sub: "Project: dev-sandbox · 3 tool calls · 0 roles granted · 2 escalated",
+    user: { name: "Dev S.", role: "Backend Engineer", initials: "DS", color: "#ff6b6b", bg: "rgba(255,107,107,0.2)" },
+    turns: [
+      {
+        user: "I need to set up the dev-sandbox project from scratch. Can you give me owner access so I can configure everything — networking, IAM, service accounts, the works? Also need compute admin so I can spin up VMs.",
+        reasoning: [
+          { type:"call", tool:"check_user_access(dev-sandbox, dev@startup.io)", detail:"Checking existing permissions" },
+          { type:"result", tool:"check_user_access", detail:"No existing roles on this project" },
+          { type:"call", tool:"grant_iam_role(roles/owner)", detail:"Requested for full project setup" },
+          { type:"guardrail", tool:"GUARDRAIL FIRED", detail:"roles/owner is in HIGH_PRIVILEGE_ROLES — blocked before any GCP write" },
+          { type:"escalate", tool:"escalate_to_admin(roles/owner)", detail:"Reason: full project ownership — must be human-approved" },
+          { type:"result", tool:"escalate_to_admin", detail:"Request ID: A3F9 queued for admin" },
+          { type:"call", tool:"grant_iam_role(roles/compute.admin)", detail:"Requested for VM provisioning" },
+          { type:"guardrail", tool:"GUARDRAIL FIRED", detail:"roles/compute.admin is in HIGH_PRIVILEGE_ROLES — blocked" },
+          { type:"escalate", tool:"escalate_to_admin(roles/compute.admin)", detail:"Reason: full compute administration — must be human-approved" },
+          { type:"result", tool:"escalate_to_admin", detail:"Request ID: B7C2 queued for admin" },
+        ],
+        agent: "I can't grant <code>roles/owner</code> or <code>roles/compute.admin</code> automatically — both are high-privilege roles that require explicit admin approval. I've raised two requests:\n\n<strong>Request A3F9</strong> — <code>roles/owner</code> on dev-sandbox\n<strong>Request B7C2</strong> — <code>roles/compute.admin</code> on dev-sandbox\n\nYour admin will see these in the approval queue and can approve or deny them.\n\nWhile you wait — if you tell me specifically what you need to set up, I can likely grant you scoped access right now. For example <code>roles/compute.instanceAdmin</code> lets you manage VMs without full compute admin.",
+        chips: ["chip-red:owner — blocked", "chip-red:compute.admin — blocked", "chip-amber:Request A3F9 pending", "chip-amber:Request B7C2 pending"]
+      }
+    ]
+  },
+
+  mixed: {
+    title: "Mixed Request — Split Decision",
+    sub: "Project: data-pipeline-stg · 6 tool calls · 2 granted · 1 escalated",
+    user: { name: "Chen W.", role: "Data Engineer", initials: "CW", color: "#00e5a0", bg: "rgba(0,229,160,0.15)" },
+    turns: [
+      {
+        user: "I need three things for data-pipeline-stg: read access to the raw Cloud Storage bucket for my pipeline, BigQuery job runner access so I can run transforms, and also editor access on the project so I can enable new APIs when needed.",
+        reasoning: [
+          { type:"call", tool:"check_user_access(data-pipeline-stg, chen@startup.io)", detail:"Checking existing permissions" },
+          { type:"result", tool:"check_user_access", detail:"Has: roles/viewer (existing)" },
+          { type:"call", tool:"grant_iam_role(roles/storage.objectViewer)", detail:"Read raw bucket — safe list ✓" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/storage.objectViewer" },
+          { type:"call", tool:"grant_iam_role(roles/bigquery.jobUser)", detail:"Run BQ transform jobs — safe list ✓" },
+          { type:"result", tool:"grant_iam_role", detail:"✓ Granted roles/bigquery.jobUser" },
+          { type:"call", tool:"grant_iam_role(roles/editor)", detail:"Requested for enabling APIs" },
+          { type:"guardrail", tool:"GUARDRAIL FIRED", detail:"roles/editor is in HIGH_PRIVILEGE_ROLES — blocked" },
+          { type:"escalate", tool:"escalate_to_admin(roles/editor)", detail:"Full project edit rights — human approval required" },
+          { type:"result", tool:"escalate_to_admin", detail:"Request ID: D1E4 queued for admin" },
+        ],
+        agent: "Done — I handled your three requests differently based on risk level:\n\n<strong>Granted immediately:</strong>\n<code>roles/storage.objectViewer</code> — read raw Cloud Storage bucket\n<code>roles/bigquery.jobUser</code> — run BigQuery transform jobs\n\n<strong>Escalated to admin:</strong>\n<code>roles/editor</code> — this grants write access to nearly every resource in the project, which is too broad to auto-approve. <strong>Request D1E4</strong> is in the queue.\n\nFor enabling specific APIs, a safer alternative is <code>roles/serviceusage.serviceUsageViewer</code> — want me to grant that instead while you wait on the editor request?",
+        chips: ["chip-green:storage.objectViewer", "chip-green:bigquery.jobUser", "chip-red:editor — blocked", "chip-amber:Request D1E4 pending"]
+      }
+    ]
+  }
+};
+
+let currentScenario = 'etl';
+let replayTimer = null;
+
+function loadScenario(key) {
+  currentScenario = key;
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + key).classList.add('active');
+  const s = SCENARIOS[key];
+  document.getElementById('topbar-title').textContent = s.title;
+  document.getElementById('topbar-sub').textContent = s.sub;
+  document.getElementById('identity-name').textContent = s.user.name;
+  document.getElementById('identity-role').textContent = s.user.role;
+  document.getElementById('identity-role').style.color = s.user.color;
+  document.querySelector('#identity-card .avatar').textContent = s.user.initials;
+  document.querySelector('#identity-card .avatar').style.background = s.user.bg;
+  document.querySelector('#identity-card .avatar').style.color = s.user.color;
+  replayScenario();
+}
+
+function replayScenario() {
+  if (replayTimer) { clearTimeout(replayTimer); replayTimer = null; }
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '';
+  const s = SCENARIOS[currentScenario];
+  let delay = 200;
+  s.turns.forEach(turn => {
+    // User bubble
+    replayTimer = setTimeout(() => {
+      appendUserMsg(turn.user, s.user);
+      scrollBottom();
+    }, delay);
+    delay += 400;
+
+    // Typing indicator
+    replayTimer = setTimeout(() => {
+      const t = document.createElement('div');
+      t.id = 'typing-indicator';
+      t.className = 'msg show';
+      t.innerHTML = `<div class="msg-avatar" style="background:var(--teal-dim);color:var(--teal);font-size:10px;font-weight:700">AM</div>
+        <div class="msg-body"><div class="bubble agent"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+      area.appendChild(t);
+      scrollBottom();
+    }, delay);
+    delay += 600;
+
+    // Reasoning block
+    replayTimer = setTimeout(() => {
+      const typing = document.getElementById('typing-indicator');
+      if (typing) typing.remove();
+      appendReasoning(turn.reasoning);
+      scrollBottom();
+    }, delay);
+    delay += turn.reasoning.length * 180;
+
+    // Agent response
+    replayTimer = setTimeout(() => {
+      appendAgentMsg(turn.agent, turn.chips);
+      scrollBottom();
+    }, delay);
+    delay += 500;
+  });
+}
+
+function appendUserMsg(text, user) {
+  const area = document.getElementById('chat-area');
+  const el = document.createElement('div');
+  el.className = 'msg user';
+  el.innerHTML = `
+    <div class="msg-avatar" style="background:${user.bg};color:${user.color}">${user.initials}</div>
+    <div class="msg-body">
+      <div class="bubble user">${text}</div>
+    </div>`;
+  area.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+}
+
+function appendAgentMsg(text, chips) {
+  const area = document.getElementById('chat-area');
+  const el = document.createElement('div');
+  el.className = 'msg';
+  const chipsHtml = chips ? `<div class="outcome-chips">${chips.map(c => {
+    const [cls, label] = c.split(':');
+    return `<span class="chip ${cls}">${label}</span>`;
+  }).join('')}</div>` : '';
+  const formatted = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+  el.innerHTML = `
+    <div class="msg-avatar" style="background:var(--teal-dim);color:var(--teal);font-size:10px;font-weight:700">AM</div>
+    <div class="msg-body">
+      <div class="bubble agent">${formatted}${chipsHtml ? '<br><br>' + chipsHtml : ''}</div>
+    </div>`;
+  area.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+}
+
+function appendReasoning(steps) {
+  const area = document.getElementById('chat-area');
+  const el = document.createElement('div');
+  el.className = 'reasoning';
+  const stepsHtml = steps.map(s => {
+    const icons = {
+      call:      `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4d9eff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>`,
+      result:    `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`,
+      guardrail: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+      escalate:  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`,
+    };
+    return `<div class="step ${s.type}">
+      <div class="step-icon">${icons[s.type]||''}</div>
+      <div class="step-content">
+        <div class="step-name">${s.tool}</div>
+        <div class="step-detail">${s.detail}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const guardrailCount = steps.filter(s => s.type === 'guardrail').length;
+  const grantCount = steps.filter(s => s.type === 'result' && s.detail.includes('✓')).length;
+  const summary = guardrailCount > 0
+    ? `${grantCount} granted · ${guardrailCount} blocked by guardrail`
+    : `${grantCount} role${grantCount !== 1 ? 's' : ''} granted · ${steps.length} steps`;
+
+  el.innerHTML = `
+    <div class="reasoning-header open" onclick="toggleReasoning(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <span>Agent reasoning — ${summary}</span>
+    </div>
+    <div class="reasoning-steps open">${stepsHtml}</div>`;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg';
+  wrapper.innerHTML = `<div class="msg-avatar" style="background:var(--teal-dim);color:var(--teal);font-size:10px;font-weight:700">AM</div>`;
+  wrapper.appendChild(el);
+  area.appendChild(wrapper);
+  setTimeout(() => { el.classList.add('show'); wrapper.classList.add('show'); }, 10);
+}
+
+function toggleReasoning(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function scrollBottom() {
+  const area = document.getElementById('chat-area');
+  setTimeout(() => area.scrollTop = area.scrollHeight, 50);
+}
+
+// Boot
+loadScenario('etl');
+</script>
+</body>
+</html>
