@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AccessMind — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f5f9;
+    --surface: #ffffff;
+    --surface2: #eef1f7;
+    --border: rgba(0,0,0,0.07);
+    --border-strong: rgba(0,0,0,0.13);
+    --text: #0f172a;
+    --text2: #334155;
+    --muted: #64748b;
+    --dim: #94a3b8;
+    --teal: #047857;
+    --teal-dim: rgba(4,120,87,0.07);
+    --teal-border: rgba(4,120,87,0.22);
+    --blue: #1d4ed8;
+    --blue-dim: rgba(29,78,216,0.07);
+    --blue-border: rgba(29,78,216,0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    padding: 32px 20px;
+    background-image:
+      radial-gradient(ellipse 55% 35% at 5% 0%, rgba(4,120,87,0.06) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 45% at 95% 100%, rgba(29,78,216,0.06) 0%, transparent 65%);
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; gap: 16px;
+  }
+  .header-left { display: flex; align-items: center; gap: 11px; }
+  .logo-mark {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #059669, #065f46);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.3);
+  }
+  .logo-mark svg { width: 20px; height: 20px; }
+  .header-text h1 {
+    font-size: 21px; font-weight: 800; letter-spacing: -0.5px; color: var(--text);
+  }
+  .header-text .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 0.2px;
+  }
+  .tech-pills { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .pill {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    padding: 3px 9px; border-radius: 100px;
+    border: 1px solid var(--border-strong);
+    color: var(--muted); background: var(--surface);
+  }
+  .pill.teal { border-color: var(--teal-border); color: var(--teal); background: var(--teal-dim); font-weight: 500; }
+  .pill.blue  { border-color: var(--blue-border); color: var(--blue); background: var(--blue-dim); font-weight: 500; }
+
+  /* ── Section label ── */
+  .sl {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--dim);
+    margin-bottom: 5px; padding-left: 1px;
+  }
+
+  /* ── Slim card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .ci {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ct { font-size: 13px; font-weight: 600; color: var(--text); }
+  .cs { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Connector ── */
+  .conn {
+    display: flex; align-items: center; justify-content: center;
+    height: 16px;
+  }
+  .conn-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .conn-line { width: 1px; height: 10px; background: var(--dim); }
+  .conn-arrow {
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--dim);
+  }
+
+  /* ── Agent block ── */
+  .agent-block {
+    background: var(--surface);
+    border: 1.5px solid var(--teal-border);
+    border-radius: 12px;
+    padding: 13px 14px;
+    box-shadow: 0 1px 4px rgba(4,120,87,0.08);
+  }
+  .agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .agent-badge {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    border-radius: 8px; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white;
+    font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  }
+  .agent-title { font-size: 13px; font-weight: 700; color: var(--teal); }
+  .agent-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .agent-inner { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .chip { border-radius: 8px; padding: 8px 10px; border: 1px solid; }
+  .chip-t { font-size: 11px; font-weight: 700; }
+  .chip-s { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; margin-top: 3px; line-height: 1.45; }
+
+  /* ── Outcomes ── */
+  .outcomes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .outcome { border-radius: 9px; padding: 10px 12px; border: 1px solid; }
+  .ot { font-size: 12px; font-weight: 700; }
+  .os { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; margin-top: 3px; line-height: 1.4; }
+
+  /* ── Provider row ── */
+  .provider-row {
+    background: var(--surface);
+    border: 1.5px solid var(--teal-border);
+    border-radius: 10px; padding: 8px 10px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    box-shadow: 0 1px 4px rgba(4,120,87,0.06);
+  }
+  .provider-inner {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 8px 11px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .pt { font-size: 12px; font-weight: 600; color: var(--text); }
+  .ps { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Divider ── */
+  .h-divider { border: none; border-top: 1px dashed rgba(0,0,0,0.1); margin: 6px 0; }
+
+  /* ── Prod row ── */
+  .prod-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .prod-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px 11px;
+    display: flex; align-items: flex-start; gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .prod-icon {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .prod-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .prod-sub { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* ── Animate ── */
+  .header, .layer {
+    opacity: 0; transform: translateY(8px);
+    animation: fadeUp 0.4s ease forwards;
+  }
+  .header { animation-delay: 0s; }
+  .layer:nth-child(1)  { animation-delay: 0.04s; }
+  .layer:nth-child(2)  { animation-delay: 0.08s; }
+  .layer:nth-child(3)  { animation-delay: 0.12s; }
+  .layer:nth-child(4)  { animation-delay: 0.16s; }
+  .layer:nth-child(5)  { animation-delay: 0.20s; }
+  .layer:nth-child(6)  { animation-delay: 0.24s; }
+  .layer:nth-child(7)  { animation-delay: 0.28s; }
+  .layer:nth-child(8)  { animation-delay: 0.32s; }
+  .layer:nth-child(9)  { animation-delay: 0.36s; }
+  .layer:nth-child(10) { animation-delay: 0.40s; }
+  .layer:nth-child(11) { animation-delay: 0.44s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg viewBox="0 0 26 26" fill="none">
+          <path d="M13 2l2.5 5 5.5.8L17 12l1 5.5L13 15l-5 2.5 1-5.5L5 7.8l5.5-.8z" fill="white"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Access Mind</h1>
+        <div class="tagline">agentic IAM & cost control · architecture overview</div>
+      </div>
+    </div>
+    <div class="tech-pills">
+      <span class="pill teal">Gemini 2.5 Flash</span>
+      <span class="pill blue">FastAPI + SSE</span>
+      <span class="pill">GCP</span>
+      <span class="pill">FastMCP</span>
+    </div>
+  </div>
+
+  <!-- User Interface -->
+  <div class="layer">
+    <div class="sl">User Interface</div>
+    <div class="card">
+      <div class="ci" style="background:#f0fdf4">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="1.5" fill="#4285F4"/>
+          <rect x="13" y="3" width="8" height="8" rx="1.5" fill="#EA4335"/>
+          <rect x="3" y="13" width="8" height="8" rx="1.5" fill="#34A853"/>
+          <rect x="13" y="13" width="8" height="8" rx="1.5" fill="#FBBC05"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ct">Web Application</div>
+        <div class="cs">Employee chat · Admin queue · Resources · Audit log · Live reasoning stream</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer"><div class="conn"><div class="conn-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div></div></div>
+
+  <!-- Backend -->
+  <div class="layer">
+    <div class="sl">Backend API</div>
+    <div class="card">
+      <div class="ci" style="background:#ecfdf5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ct">FastAPI — REST & SSE</div>
+        <div class="cs">Streams agent reasoning live · manages IAM queue · resource termination queue · audit log</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer"><div class="conn"><div class="conn-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div></div></div>
+
+  <!-- Agent -->
+  <div class="layer">
+    <div class="sl">AI Agent</div>
+    <div class="agent-block">
+      <div class="agent-header">
+        <div class="agent-badge">G</div>
+        <div>
+          <div class="agent-title">Gemini 2.5 Flash — Agentic Loop</div>
+          <div class="agent-sub">12 tools · up to 10 reasoning rounds · streams each step to the UI in real time</div>
+        </div>
+      </div>
+      <div class="agent-inner">
+        <div class="chip" style="background:rgba(124,58,237,0.06);border-color:rgba(124,58,237,0.2)">
+          <div class="chip-t" style="color:#6d28d9">Natural language</div>
+          <div class="chip-s" style="color:#7c3aed99">Maps plain English requests to the minimum required IAM role</div>
+        </div>
+        <div class="chip" style="background:rgba(29,78,216,0.06);border-color:rgba(29,78,216,0.2)">
+          <div class="chip-t" style="color:#1d4ed8">Autonomous decisions</div>
+          <div class="chip-s" style="color:#1d4ed899">Checks · reasons · acts · no fixed script</div>
+        </div>
+        <div class="chip" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2)">
+          <div class="chip-t" style="color:#dc2626">Code guardrails</div>
+          <div class="chip-s" style="color:#dc262699">16 roles hard-blocked · 2-challenge gate before any deletion</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer"><div class="conn"><div class="conn-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div></div></div>
+
+  <!-- Outcomes -->
+  <div class="layer">
+    <div class="sl">Agent Outcomes</div>
+    <div class="outcomes">
+      <div class="outcome" style="background:#f0fdf4;border-color:rgba(74,222,128,0.35)">
+        <div class="ot" style="color:#15803d">Auto-grant access</div>
+        <div class="os" style="color:#16a34a99">20 safe roles · least privilege · instant · no admin needed</div>
+      </div>
+      <div class="outcome" style="background:#fefce8;border-color:rgba(234,179,8,0.35)">
+        <div class="ot" style="color:#a16207">Escalate to admin</div>
+        <div class="os" style="color:#ca8a0499">High-privilege requests queued for human approval</div>
+      </div>
+      <div class="outcome" style="background:#fff7ed;border-color:rgba(251,146,60,0.35)">
+        <div class="ot" style="color:#c2410c">Flag for termination</div>
+        <div class="os" style="color:#ea580c99">Cost recs surfaced · admin challenged before any deletion</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer"><div class="conn"><div class="conn-wrap"><div class="conn-line"></div><div class="conn-arrow"></div></div></div></div>
+
+  <!-- GCP -->
+  <div class="layer">
+    <div class="sl">Google Cloud Platform</div>
+    <div class="provider-row">
+      <div class="provider-inner">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+          <path d="M12 6l1.5 3 3.3.5-2.4 2.3.6 3.2L12 13.5l-3 1.5.6-3.2L7.2 9.5l3.3-.5z" fill="white"/>
+        </svg>
+        <div>
+          <div class="pt">Live GCP APIs</div>
+          <div class="ps">IAM · Compute Engine · Cloud Storage · Recommender</div>
+        </div>
+      </div>
+      <div class="provider-inner">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <rect width="24" height="24" rx="5" fill="#e8edf5"/>
+          <path d="M7 12h10M12 7v10" stroke="#9aa3b0" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="pt">Mock mode (fallback)</div>
+          <div class="ps">Realistic demo data · no credentials needed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer"><hr class="h-divider"></div>
+
+  <!-- Production -->
+  <div class="layer">
+    <div class="sl">Production Readiness</div>
+    <div class="prod-row">
+      <div class="prod-box">
+        <div class="prod-icon" style="background:#fff7ed">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="12" width="7" height="9" rx="1" fill="#f97316"/>
+            <rect x="10" y="7" width="7" height="14" rx="1" fill="#f97316" opacity=".75"/>
+            <rect x="17" y="4" width="4" height="17" rx="1" fill="#f97316" opacity=".45"/>
+          </svg>
+        </div>
+        <div>
+          <div class="prod-title">MCP Server</div>
+          <div class="prod-sub">12 tools over stdio · Claude Desktop-ready</div>
+        </div>
+      </div>
+      <div class="prod-box">
+        <div class="prod-icon" style="background:#eff6ff">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2l2 4.5 5 .7-3.6 3.5.9 5L12 13.2 7.7 15.7l.9-5L5 7.2l5-.7z" fill="#3b82f6"/>
+          </svg>
+        </div>
+        <div>
+          <div class="prod-title">Cloud Run</div>
+          <div class="prod-sub">Live · Secret Manager · auto-scales to zero</div>
+        </div>
+      </div>
+      <div class="prod-box">
+        <div class="prod-icon" style="background:#f0fdf4">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="#22c55e" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="prod-title">Evals & Audit</div>
+          <div class="prod-sub">15 tests · append-only audit trail</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#388bfd"/>
+      <stop offset="100%" stop-color="#58d1ff"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Shield shape -->
+  <path d="M50 8 L88 22 L88 54 Q88 78 50 92 Q12 78 12 54 L12 22 Z"
+        fill="url(#shield-grad)" filter="url(#glow)"/>
+  <!-- Inner shield highlight -->
+  <path d="M50 16 L80 27 L80 52 Q80 71 50 83 Q20 71 20 52 L20 27 Z"
+        fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+  <!-- "AM" letters -->
+  <text x="50" y="57" text-anchor="middle"
+        font-family="'Inter', 'Helvetica Neue', sans-serif"
+        font-size="26" font-weight="700" letter-spacing="-1"
+        fill="white" opacity="0.95">AM</text>
+  <!-- Subtle top shine -->
+  <path d="M50 8 L88 22 L88 36 Q69 30 50 28 Q31 30 12 36 L12 22 Z"
+        fill="rgba(255,255,255,0.12)"/>
+</svg>

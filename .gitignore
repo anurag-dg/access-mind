@@ -1,1 +1,38 @@
-*.cpython-313.pyc
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment & secrets — NEVER commit these
+.env
+*.env
+key.json
+service-account*.json
+*-service-account.json
+*_credentials.json
+credentials.json
+gcp-key.json
+
+# Runtime data files — contain PII / audit records
+admin_queue.json
+resource_queue.json
+audit.log
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
