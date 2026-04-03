@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import logging
+import uuid
 from dataclasses import dataclass, field
 from typing import Generator, Any
 
@@ -26,9 +27,10 @@ logger = logging.getLogger(__name__)
 
 MODEL_NAME = "gemini-2.5-flash"
 
-# Server-side challenge tracker — maps request_id → number of challenges issued
-# approve_termination is blocked until at least REQUIRED_CHALLENGES are on record
-_termination_challenges: dict[str, int] = {}
+# Server-side challenge tracker — maps request_id → number of distinct user turns that issued a challenge
+# approve_termination is blocked until at least REQUIRED_CHALLENGES *different* user messages have challenged
+_termination_challenges: dict[str, int] = {}   # request_id → confirmed challenge count
+_termination_sessions: dict[str, set] = {}     # request_id → set of run_ids that already challenged
 REQUIRED_CHALLENGES = 2
 
 
@@ -330,6 +332,7 @@ def _execute_tool(
     tool_input: dict,
     requester_email: str,
     provider: CloudProvider,
+    run_id: str = "",
 ) -> tuple[Any, AgentStep | None]:
     """Execute a single tool call. Returns (result_dict, optional_guardrail_step)."""
 
@@ -581,8 +584,14 @@ def _execute_tool(
     elif tool_name == "challenge_termination":
         request_id = tool_input["request_id"]
         question = tool_input["question"]
-        count = _termination_challenges.get(request_id, 0) + 1
-        _termination_challenges[request_id] = count
+        # Only count one challenge per user message (run_id) — prevents Gemini
+        # from batching multiple challenge_termination calls in one round to
+        # bypass the guardrail without real admin answers.
+        sessions = _termination_sessions.setdefault(request_id, set())
+        if run_id and run_id not in sessions:
+            sessions.add(run_id)
+            _termination_challenges[request_id] = len(sessions)
+        count = _termination_challenges.get(request_id, 0)
         remaining = max(0, REQUIRED_CHALLENGES - count)
         logger.info(
             f"[challenge_termination] request={request_id} round={count}/{REQUIRED_CHALLENGES}"
@@ -726,6 +735,10 @@ def run_agent(
         history=gemini_history,
     )
 
+    # Unique ID for this invocation — used to ensure each user message
+    # counts as at most one challenge, preventing Gemini from gaming the counter.
+    run_id = str(uuid.uuid4())
+
     # Safety: cap tool-call rounds to avoid infinite loops
     max_rounds = 10
 
@@ -789,7 +802,7 @@ def run_agent(
 
             try:
                 result, guardrail = _execute_tool(
-                    tool_name, tool_input, requester_email, provider
+                    tool_name, tool_input, requester_email, provider, run_id
                 )
             except Exception as e:
                 logger.error(f"Tool {tool_name} failed: {e}")
